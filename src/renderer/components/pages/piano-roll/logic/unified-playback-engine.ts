@@ -1,5 +1,6 @@
 /**
  * Unified Playback Engine - Position-Driven Audio-Visual Synchronization
+ * Updated with realistic piano using soundfont-player
  * 
  * This engine solves the synchronization problem by making the playerhead position
  * the single source of truth. Audio is triggered when the playerhead reaches notes,
@@ -7,6 +8,8 @@
  */
 
 import * as Tone from 'tone';
+// Add soundfont-player for realistic piano sounds
+import Soundfont from 'soundfont-player';
 import type { MIDINote } from '../components/grid-area';
 import type { InstrumentType } from '../components/instruments';
 import { AudioInitializationService } from '../../../../lib/services/audio-initialization';
@@ -39,8 +42,11 @@ export class UnifiedPlaybackEngine {
   
   // Audio components
   private currentInstrument: any = null; // Using any to support all Tone.js synth types
+  private soundfontPiano: any = null; // SoundFont piano instrument
   private currentInstrumentType: InstrumentType = 'piano';
   private initialized = false;
+  private pianoLoading = false;
+  private pianoLoaded = false;
   
   // Callbacks
   private onPositionUpdate: ((position: number) => void) | null = null;
@@ -76,56 +82,99 @@ export class UnifiedPlaybackEngine {
     }
   }
 
+  // Load SoundFont piano asynchronously
+  private async loadSoundFontPiano(): Promise<void> {
+    if (this.pianoLoaded || this.pianoLoading) return;
+    
+    this.pianoLoading = true;
+    console.log('🎹 Loading SoundFont piano...');
+    
+    try {
+      // Use Tone.context to get the AudioContext from Tone.js
+      this.soundfontPiano = await Soundfont.instrument(Tone.context, 'acoustic_grand_piano', {
+        soundfont: 'MusyngKite' // Higher quality soundfont
+      });
+      
+      this.pianoLoaded = true;
+      this.pianoLoading = false;
+      console.log('✅ SoundFont piano loaded successfully');
+      
+      // If we're currently using piano, switch to the loaded soundfont
+      if (this.currentInstrumentType === 'piano') {
+        this.currentInstrument = this.soundfontPiano;
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ Failed to load SoundFont piano:', error);
+      this.pianoLoading = false;
+      this.pianoLoaded = false;
+    }
+  }
+
   // Create instrument based on type
   private createInstrument(type: InstrumentType): void {
-    // Dispose of current instrument
-    if (this.currentInstrument) {
-      this.currentInstrument.dispose();
+    // Dispose of current instrument (except soundfont piano which we keep)
+    if (this.currentInstrument && this.currentInstrument !== this.soundfontPiano) {
+      this.currentInstrument.dispose?.();
     }
 
     console.log(`🎵 Creating instrument: ${type}`);
 
     switch (type) {
       case 'piano':
-        // Realistic Grand Piano sound using layered synthesis
-        this.currentInstrument = new Tone.PolySynth(Tone.Synth, {
-          oscillator: {
-            type: "sine",
-            harmonics: [1, 0.5, 0.2, 0.1, 0.05, 0.02]
-          },
-          envelope: {
-            attack: 0.01,
-            attackCurve: "exponential",
-            decay: 0.3,
-            decayCurve: "exponential",
-            sustain: 0.2,
-            release: 2.5,
-            releaseCurve: "exponential"
-          },
-          filter: {
-            type: "lowpass",
-            frequency: 3000,
-            Q: 1,
-            gain: 0
-          },
-          filterEnvelope: {
-            attack: 0.01,
-            decay: 0.4,
-            sustain: 0.3,
-            release: 1.2,
-            baseFrequency: 2000,
-            octaves: 2,
-            exponent: 2
+        if (this.pianoLoaded && this.soundfontPiano) {
+          // Use loaded SoundFont piano
+          console.log('🎹 Using SoundFont acoustic grand piano');
+          this.currentInstrument = this.soundfontPiano;
+        } else {
+          // Load SoundFont piano in background while using fallback
+          if (!this.pianoLoading) {
+            this.loadSoundFontPiano();
           }
-        }).chain(
-          new Tone.Compressor(-30, 3),
-          new Tone.EQ3({
-            low: -2,
-            mid: 1,
-            high: -1
-          }),
-          Tone.Destination
-        );
+          
+          // Enhanced synthesized piano as fallback
+          console.log('🎹 Using enhanced synthesized piano (loading SoundFont in background...)');
+          this.currentInstrument = new Tone.PolySynth(Tone.Synth, {
+            oscillator: {
+              partials: [1, 0.5, 0.4, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05],
+              type: "custom"
+            },
+            envelope: {
+              attack: 0.005,
+              attackCurve: "exponential", 
+              decay: 0.35,
+              decayCurve: "exponential",
+              sustain: 0.18,
+              release: 2.8,
+              releaseCurve: "exponential"
+            },
+            filter: {
+              type: "lowpass",
+              frequency: 4200,
+              Q: 0.8,
+              gain: 0
+            },
+            filterEnvelope: {
+              attack: 0.008,
+              decay: 0.35,
+              sustain: 0.45,
+              release: 1.8,
+              baseFrequency: 1800,
+              octaves: 2.2,
+              exponent: 2
+            }
+          }).chain(
+            new Tone.Compressor(-28, 2.5),
+            new Tone.EQ3({
+              low: -0.5,
+              mid: 1.5,
+              high: -0.8,
+              lowFrequency: 180,
+              highFrequency: 3200
+            }),
+            Tone.Destination
+          );
+        }
         break;
         
       case 'synth':
@@ -468,8 +517,6 @@ export class UnifiedPlaybackEngine {
       // Update position (this is the authoritative position)
       this.playbackState.currentPosition += deltaBeats;
       
-      // Removed debug logging for performance
-      
       // Trigger notes that the playerhead has reached
       this.processNoteTriggers();
       
@@ -500,41 +547,54 @@ export class UnifiedPlaybackEngine {
         console.log(`🎵 Triggering note ${note.midi} at position ${currentPosition.toFixed(3)}`);
         
         if (this.currentInstrument) {
-          const frequency = Tone.Frequency(note.midi, "midi").toFrequency();
-          const velocity = note.velocity / 127; // Normalize velocity
-          
-          // Different synths need different trigger methods
-          if (this.currentInstrumentType === 'metalSynth') {
-            // MetalSynth doesn't use frequency, just trigger
-            this.currentInstrument.triggerAttack(audioTime, velocity);
-          } else if (this.currentInstrumentType === 'membraneSynth') {
-            // MembraneSynth uses frequency differently
-            this.currentInstrument.triggerAttack(frequency, audioTime, velocity);
-          } else if ('triggerAttack' in this.currentInstrument) {
-            // Most synths use frequency and time
-            this.currentInstrument.triggerAttack(frequency, audioTime, velocity);
+          // Handle SoundFont piano differently
+          if (this.currentInstrumentType === 'piano' && this.currentInstrument === this.soundfontPiano) {
+            // Use SoundFont piano
+            const noteName = Tone.Frequency(note.midi, "midi").toNote();
+            const velocity = note.velocity / 127;
+            const noteDuration = (note.duration * 60) / this.playbackState.bpm;
+            
+            // SoundFont player expects: play(note, time, duration, options)
+            this.soundfontPiano.play(noteName, audioTime, noteDuration, { gain: velocity });
+            
+          } else {
+            // Use Tone.js instruments
+            const frequency = Tone.Frequency(note.midi, "midi").toFrequency();
+            const velocity = note.velocity / 127;
+            
+            // Different synths need different trigger methods
+            if (this.currentInstrumentType === 'metalSynth') {
+              // MetalSynth doesn't use frequency, just trigger
+              this.currentInstrument.triggerAttack(audioTime, velocity);
+            } else if (this.currentInstrumentType === 'membraneSynth') {
+              // MembraneSynth uses frequency differently
+              this.currentInstrument.triggerAttack(frequency, audioTime, velocity);
+            } else if ('triggerAttack' in this.currentInstrument) {
+              // Most synths use frequency and time
+              this.currentInstrument.triggerAttack(frequency, audioTime, velocity);
+            }
+            
+            // Schedule note OFF
+            const noteDuration = (note.duration * 60) / this.playbackState.bpm; // Convert beats to seconds
+            setTimeout(() => {
+              if (this.currentInstrument && this.currentInstrument !== this.soundfontPiano) {
+                const frequency = Tone.Frequency(note.midi, "midi").toFrequency();
+                
+                // Different synths need different release methods
+                if (this.currentInstrumentType === 'metalSynth' || this.currentInstrumentType === 'membraneSynth') {
+                  // These synths use triggerRelease without frequency
+                  this.currentInstrument.triggerRelease(Tone.now());
+                } else if ('triggerRelease' in this.currentInstrument) {
+                  // Most poly/mono synths use frequency
+                  this.currentInstrument.triggerRelease(frequency, Tone.now());
+                }
+              }
+            }, noteDuration * 1000);
           }
         }
         
         noteState.isTriggered = true;
         noteState.triggerTime = audioTime;
-        
-        // Schedule note OFF
-        const noteDuration = (note.duration * 60) / this.playbackState.bpm; // Convert beats to seconds
-        setTimeout(() => {
-          if (this.currentInstrument) {
-            const frequency = Tone.Frequency(note.midi, "midi").toFrequency();
-            
-            // Different synths need different release methods
-            if (this.currentInstrumentType === 'metalSynth' || this.currentInstrumentType === 'membraneSynth') {
-              // These synths use triggerRelease without frequency
-              this.currentInstrument.triggerRelease(Tone.now());
-            } else if ('triggerRelease' in this.currentInstrument) {
-              // Most poly/mono synths use frequency
-              this.currentInstrument.triggerRelease(frequency, Tone.now());
-            }
-          }
-        }, noteDuration * 1000);
       }
     });
   }
@@ -558,7 +618,14 @@ export class UnifiedPlaybackEngine {
     if (!this.currentInstrument) return;
     
     try {
-      // PolySynth has releaseAll, individual synths need to be released differently
+      // Handle SoundFont piano
+      if (this.currentInstrument === this.soundfontPiano) {
+        // SoundFont player stops notes automatically, no need to manually stop
+        console.log('🎹 SoundFont notes will stop naturally');
+        return;
+      }
+      
+      // Handle Tone.js instruments
       if ('releaseAll' in this.currentInstrument) {
         this.currentInstrument.releaseAll();
       } else {
@@ -574,6 +641,15 @@ export class UnifiedPlaybackEngine {
   // Play preview note
   playPreviewNote(midi: number, velocity = 80): void {
     if (this.currentInstrument) {
+      // Handle SoundFont piano
+      if (this.currentInstrumentType === 'piano' && this.currentInstrument === this.soundfontPiano) {
+        const noteName = Tone.Frequency(midi, "midi").toNote();
+        const vel = velocity / 127;
+        this.soundfontPiano.play(noteName, 0, 1, { gain: vel });
+        return;
+      }
+      
+      // Handle Tone.js instruments
       const frequency = Tone.Frequency(midi, "midi").toFrequency();
       const vel = velocity / 127;
       
@@ -613,7 +689,9 @@ export class UnifiedPlaybackEngine {
     const audioService = AudioInitializationService.getInstance();
     return {
       isInitialized: this.initialized,
-      hasSF2: false,
+      hasSF2: this.pianoLoaded,
+      pianoType: this.pianoLoaded ? 'soundfont' : 'synthesis',
+      pianoLoading: this.pianoLoading,
       contextState: audioService.getAudioContext()?.state || null
     };
   }
@@ -650,9 +728,12 @@ export class UnifiedPlaybackEngine {
     
     this.stop();
     
-    if (this.currentInstrument) {
+    if (this.currentInstrument && this.currentInstrument !== this.soundfontPiano) {
       this.currentInstrument.dispose();
     }
+    
+    // SoundFont instruments don't need disposal
+    this.soundfontPiano = null;
     
     this.onPositionUpdate = null;
     this.onStateChange = null;

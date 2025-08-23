@@ -2,8 +2,6 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import { resolve, normalize, dirname } from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
-
-import injectProcessEnvPlugin from 'rollup-plugin-inject-process-env'
 import tsconfigPathsPlugin from 'vite-tsconfig-paths'
 import reactPlugin from '@vitejs/plugin-react'
 
@@ -54,14 +52,13 @@ export default defineConfig({
 
     plugins: [
       tsconfigPaths,
-      tailwindcss(),
-      reactPlugin(),
-
       codeInspectorPlugin({
         bundler: 'vite',
         hotKeys: ['altKey'],
         hideConsole: true,
       }),
+      tailwindcss(),
+      reactPlugin(),
     ],
 
     publicDir: resolve(resources, 'public'),
@@ -70,13 +67,6 @@ export default defineConfig({
       outDir: resolve(devPath, 'renderer'),
 
       rollupOptions: {
-        plugins: [
-          injectProcessEnvPlugin({
-            NODE_ENV: 'production',
-            platform: process.platform,
-          }),
-        ],
-
         input: {
           index: resolve('src/renderer/index.html'),
         },
