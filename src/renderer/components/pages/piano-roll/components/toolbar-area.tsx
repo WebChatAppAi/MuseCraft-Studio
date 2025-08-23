@@ -11,7 +11,13 @@ import {
   Zap,
   Target,
   Loader2,
-  Download
+  Download,
+  Music,
+  ToggleLeft,
+  Palette,
+  TrendingUp,
+  Volume2,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { Badge } from '../../../ui/badge';
@@ -26,8 +32,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '../../../ui/dropdown-menu';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../ui/select';
 
 import { useAIGenerationStore } from '../logic/ai-generation-state';
+import { 
+  MUSICAL_SCALES, 
+  SCALE_TYPES, 
+  MUSICAL_STYLES, 
+  RHYTHM_PATTERNS, 
+  NOTE_DENSITY,
+  getScaleDisplayName 
+} from '../../../../../shared/utils/musical-constants';
 import type { MIDINote } from './grid-area';
 import { Instruments, type InstrumentType } from './instruments';
 
@@ -80,11 +101,15 @@ export function ToolbarArea({
     isGenerating,
     generationProgress,
     generationParams,
+    musicalParams,
+    useMusicalMode,
     includeExistingNotes,
     error,
     startGeneration,
     cancelGeneration,
     updateGenerationParams,
+    updateMusicalParams,
+    setUseMusicalMode,
     setIncludeExistingNotes,
     clearError,
   } = useAIGenerationStore();
@@ -93,6 +118,10 @@ export function ToolbarArea({
   const selectedModel = availableModels.find(model => model.model_id === selectedModelId);
   const isModelLoaded = selectedModelId && loadedModels.includes(selectedModelId);
   const canGenerate = isModelLoaded && !isGenerating;
+
+  // Debug logging for state values
+  console.log('🔧 Toolbar render - useMusicalMode:', useMusicalMode);
+  console.log('🔧 Toolbar render - includeExistingNotes:', includeExistingNotes);
 
   const handleGenerate = async () => {
     if (!canGenerate) return;
@@ -196,7 +225,7 @@ export function ToolbarArea({
           onInstrumentChange={onInstrumentChange}
         />
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
           <div
             className={`h-8 w-8 p-0 rounded-lg inline-flex items-center justify-center ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               currentNotes.length === 0
@@ -241,22 +270,25 @@ export function ToolbarArea({
         
         {/* AI Components - Only show when model is loaded */}
         {isModelLoaded && (
-          <>
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* AI Model Info */}
             <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-card/50 rounded-lg border">
-                <Bot className="h-4 w-4 text-blue-400" />
-                <span className="text-sm font-medium text-foreground">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-card/50 rounded-lg border max-w-[200px]">
+                <Bot className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                <span 
+                  className="text-sm font-medium text-foreground truncate max-w-[120px]"
+                  title={selectedModel?.name}
+                >
                   {selectedModel?.name}
                 </span>
-                <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0">
                   Loaded
                 </Badge>
               </div>
             </div>
 
             {/* Generate Button - Clean with glow effect */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               {isGenerating ? (
                 <button
                   onClick={handleCancel}
@@ -279,14 +311,14 @@ export function ToolbarArea({
                 >
                   <div className="flex items-center gap-2 text-sm">
                     <Zap className="h-4 w-4" />
-                    <span>Generate</span>
+                    <span>Generate {useMusicalMode ? `${musicalParams.scaleRoot} ${musicalParams.scaleType}` : 'AI'}</span>
                   </div>
                 </button>
               )}
             </div>
 
             {/* Parameters Dropdown */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -294,112 +326,318 @@ export function ToolbarArea({
                     size="sm"
                     className="flex items-center gap-2 bg-card/50 border-border/50 hover:bg-card/70 rounded-lg"
                   >
-                    <Settings className="h-4 w-4" />
-                    Parameters
+                    <Music className="h-4 w-4" />
+                    {useMusicalMode ? 'Musical' : 'Technical'}
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
                   align="end" 
-                  className="w-80 p-4"
+                  className="w-96 p-4 max-h-[80vh] overflow-visible"
                   sideOffset={5}
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                  avoidCollisions={false}
+                  sticky="always"
                 >
-                  <DropdownMenuLabel className="flex items-center gap-2 text-popover-foreground mb-2">
-                    <Target className="h-4 w-4 text-blue-400" />
-                    Generation Parameters
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-border mb-2" />
-                  
-                  <div className="space-y-4 py-2">
-                    {/* Temperature */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-popover-foreground">Temperature</Label>
-                        <span className="text-xs text-muted-foreground">
-                          {generationParams.temperature?.toFixed(1) || '0.8'}
-                        </span>
+                  <div className="space-y-4">
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label className="text-sm text-popover-foreground flex items-center gap-2">
+                          <ToggleLeft className="h-4 w-4" />
+                          Parameter Mode
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {useMusicalMode ? 'Musical terms for musicians' : 'Technical parameters for developers'}
+                        </p>
                       </div>
-                      <Slider
-                        value={[generationParams.temperature || 0.8]}
-                        onValueChange={([value]) => updateGenerationParams({ temperature: value })}
-                        min={0.1}
-                        max={2.0}
-                        step={0.1}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Lower = more predictable, Higher = more creative
-                      </p>
-                    </div>
-
-                    {/* Max Notes */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-popover-foreground">Max Notes</Label>
-                        <span className="text-xs text-muted-foreground">
-                          {generationParams.max_notes || 50}
-                        </span>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={useMusicalMode}
+                          onCheckedChange={(checked) => {
+                            console.log('Toggle switch changed to:', checked);
+                            setUseMusicalMode(checked);
+                          }}
+                        />
                       </div>
-                      <Slider
-                        value={[generationParams.max_notes || 50]}
-                        onValueChange={([value]) => updateGenerationParams({ max_notes: value })}
-                        min={5}
-                        max={200}
-                        step={5}
-                        className="w-full"
-                      />
-                    </div>
-
-                    {/* Note Duration */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-popover-foreground">Note Duration</Label>
-                        <span className="text-xs text-muted-foreground">
-                          {generationParams.note_duration || 0.5}s
-                        </span>
-                      </div>
-                      <Slider
-                        value={[generationParams.note_duration || 0.5]}
-                        onValueChange={([value]) => updateGenerationParams({ note_duration: value })}
-                        min={0.125}
-                        max={4.0}
-                        step={0.125}
-                        className="w-full"
-                      />
-                    </div>
-
-                    {/* Velocity */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-popover-foreground">Velocity</Label>
-                        <span className="text-xs text-muted-foreground">
-                          {generationParams.velocity || 80}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[generationParams.velocity || 80]}
-                        onValueChange={([value]) => updateGenerationParams({ velocity: value })}
-                        min={1}
-                        max={127}
-                        step={1}
-                        className="w-full"
-                      />
                     </div>
 
                     <DropdownMenuSeparator className="bg-border" />
 
+                    {useMusicalMode ? (
+                      // Musical Mode Controls
+                      <div className="space-y-4">
+                        <DropdownMenuLabel className="flex items-center gap-2 text-popover-foreground">
+                          <Music className="h-4 w-4 text-purple-400" />
+                          Musical Settings
+                        </DropdownMenuLabel>
+
+                        {/* Scale and Type */}
+                        <div className="grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-popover-foreground">Scale Root</Label>
+                            <Select
+                              value={musicalParams.scaleRoot}
+                              onValueChange={(value) => updateMusicalParams({ scaleRoot: value })}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent 
+                                className="z-[9999] max-h-[200px] overflow-auto"
+                                position="popper"
+                                sideOffset={8}
+                                avoidCollisions={true}
+                                sticky="always"
+                              >
+                                {MUSICAL_SCALES.map(scale => (
+                                  <SelectItem key={scale} value={scale}>
+                                    {getScaleDisplayName(scale)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-popover-foreground">Scale Type</Label>
+                            <Select
+                              value={musicalParams.scaleType}
+                              onValueChange={(value: any) => updateMusicalParams({ scaleType: value })}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent 
+                                className="z-[9999] max-h-[200px] overflow-auto"
+                                position="popper"
+                                sideOffset={8}
+                                avoidCollisions={true}
+                                sticky="always"
+                              >
+                                {Object.entries(SCALE_TYPES).map(([key, config]) => (
+                                  <SelectItem key={key} value={key}>
+                                    <div>
+                                      <div className="font-medium">{config.label}</div>
+                                      <div className="text-xs text-muted-foreground">{config.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Creativity Level */}
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm text-popover-foreground flex items-center gap-2">
+                              <TrendingUp className="h-3 w-3" />
+                              Creativity
+                            </Label>
+                            <span className="text-xs text-muted-foreground">
+                              {musicalParams.creativityLevel}%
+                            </span>
+                          </div>
+                          <Slider
+                            value={[musicalParams.creativityLevel]}
+                            onValueChange={([value]) => updateMusicalParams({ creativityLevel: value })}
+                            min={0}
+                            max={100}
+                            step={5}
+                            className="w-full"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Low = predictable melodies, High = experimental sounds
+                          </p>
+                        </div>
+
+                        {/* Musical Style */}
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <Label className="text-sm text-popover-foreground flex items-center gap-2">
+                            <Palette className="h-3 w-3" />
+                            Musical Style
+                          </Label>
+                          <Select
+                            value={musicalParams.musicalStyle}
+                            onValueChange={(value: any) => updateMusicalParams({ musicalStyle: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent 
+                              className="z-[9999] max-h-[200px] overflow-auto"
+                              position="popper"
+                              sideOffset={8}
+                              avoidCollisions={true}
+                              sticky="always"
+                            >
+                              {Object.entries(MUSICAL_STYLES).map(([key, config]) => (
+                                <SelectItem key={key} value={key}>
+                                  <div>
+                                    <div className="font-medium">{config.label}</div>
+                                    <div className="text-xs text-muted-foreground">{config.description}</div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Rhythm Pattern and Note Density */}
+                        <div className="grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-popover-foreground flex items-center gap-2">
+                              <BarChart3 className="h-3 w-3" />
+                              Rhythm
+                            </Label>
+                            <Select
+                              value={musicalParams.rhythmPattern}
+                              onValueChange={(value: any) => updateMusicalParams({ rhythmPattern: value })}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent 
+                                className="z-[9999] max-h-[200px] overflow-auto"
+                                position="popper"
+                                sideOffset={8}
+                                avoidCollisions={true}
+                                sticky="always"
+                              >
+                                {Object.entries(RHYTHM_PATTERNS).map(([key, config]) => (
+                                  <SelectItem key={key} value={key}>
+                                    <div>
+                                      <div className="font-medium text-xs">{config.label}</div>
+                                      <div className="text-xs text-muted-foreground">{config.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-popover-foreground flex items-center gap-2">
+                              <Volume2 className="h-3 w-3" />
+                              Density
+                            </Label>
+                            <Select
+                              value={musicalParams.noteDensity}
+                              onValueChange={(value: any) => updateMusicalParams({ noteDensity: value })}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent 
+                                className="z-[9999] max-h-[200px] overflow-auto"
+                                position="popper"
+                                sideOffset={8}
+                                avoidCollisions={true}
+                                sticky="always"
+                              >
+                                {Object.entries(NOTE_DENSITY).map(([key, config]) => (
+                                  <SelectItem key={key} value={key}>
+                                    <div>
+                                      <div className="font-medium text-xs">{config.label}</div>
+                                      <div className="text-xs text-muted-foreground">{config.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Technical Mode Controls (existing)
+                      <div className="space-y-4">
+                        <DropdownMenuLabel className="flex items-center gap-2 text-popover-foreground">
+                          <Target className="h-4 w-4 text-blue-400" />
+                          Technical Parameters
+                        </DropdownMenuLabel>
+
+                        {/* Temperature */}
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm text-popover-foreground">Temperature</Label>
+                            <span className="text-xs text-muted-foreground">
+                              {generationParams.temperature?.toFixed(1) || '0.8'}
+                            </span>
+                          </div>
+                          <Slider
+                            value={[generationParams.temperature || 0.8]}
+                            onValueChange={([value]) => updateGenerationParams({ temperature: value })}
+                            min={0.1}
+                            max={2.0}
+                            step={0.1}
+                            className="w-full"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+                        </div>
+
+                        {/* Max Notes */}
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm text-popover-foreground">Max Notes</Label>
+                            <span className="text-xs text-muted-foreground">
+                              {generationParams.max_notes || 32}
+                            </span>
+                          </div>
+                          <Slider
+                            value={[generationParams.max_notes || 32]}
+                            onValueChange={([value]) => updateGenerationParams({ max_notes: value })}
+                            min={5}
+                            max={200}
+                            step={5}
+                            className="w-full"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+                        </div>
+
+                        {/* Velocity */}
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm text-popover-foreground">Velocity</Label>
+                            <span className="text-xs text-muted-foreground">
+                              {generationParams.velocity || 80}
+                            </span>
+                          </div>
+                          <Slider
+                            value={[generationParams.velocity || 80]}
+                            onValueChange={([value]) => updateGenerationParams({ velocity: value })}
+                            min={1}
+                            max={127}
+                            step={1}
+                            className="w-full"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <DropdownMenuSeparator className="bg-border" />
+
                     {/* Include Existing Notes Toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                       <div className="space-y-1">
                         <Label className="text-sm text-popover-foreground">Include Existing Notes</Label>
                         <p className="text-xs text-muted-foreground">
                           Use current notes as context ({currentNotes.length} notes)
                         </p>
                       </div>
-                      <Switch
-                        checked={includeExistingNotes}
-                        onCheckedChange={setIncludeExistingNotes}
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={includeExistingNotes}
+                          onCheckedChange={(checked) => {
+                            console.log('Include existing notes changed to:', checked);
+                            setIncludeExistingNotes(checked);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </DropdownMenuContent>
@@ -420,10 +658,27 @@ export function ToolbarArea({
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
 
       </div>
+      
+      {/* Force Select dropdowns to break out of containers */}
+      <style>{`
+        [data-radix-select-content] {
+          z-index: 10000 !important;
+          position: fixed !important;
+        }
+        
+        [data-radix-popper-content-wrapper] {
+          z-index: 10000 !important;
+        }
+        
+        .radix-select-content {
+          z-index: 10000 !important;
+          position: fixed !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -16,9 +16,20 @@ interface AIGenerationState {
   currentJobId: string | null;
   generationProgress: number;
   
-  // Generation parameters
+  // Generation parameters (technical)
   generationParams: Partial<AIGenerationParams>;
   includeExistingNotes: boolean;
+  
+  // Musical parameters (user-friendly)
+  musicalParams: {
+    scaleRoot: string;
+    scaleType: 'Major' | 'Minor' | 'Pentatonic' | 'Blues' | 'Dorian' | 'Mixolydian';
+    creativityLevel: number; // 0-100%
+    musicalStyle: 'Classical' | 'Jazz' | 'Pop' | 'Rock' | 'Electronic' | 'Ambient';
+    rhythmPattern: 'Simple' | 'Complex' | 'Syncopated' | 'Straight';
+    noteDensity: 'Sparse' | 'Moderate' | 'Dense';
+  };
+  useMusicalMode: boolean; // Toggle between musical and technical parameters
   
   // Generation history
   generationHistory: Array<{
@@ -38,6 +49,10 @@ interface AIGenerationState {
   updateLoadedModels: (loadedModels: string[]) => void;
   updateGenerationParams: (params: Partial<AIGenerationParams>) => void;
   setIncludeExistingNotes: (include: boolean) => void;
+  
+  // Musical parameter actions
+  updateMusicalParams: (params: Partial<AIGenerationState['musicalParams']>) => void;
+  setUseMusicalMode: (useMusical: boolean) => void;
   startGeneration: (existingNotes: MIDINote[], onNotesGenerated: (notes: MIDINote[]) => void) => Promise<void>;
   updateGenerationProgress: (progress: number) => void;
   completeGeneration: (result: GenerationResult, onNotesGenerated: (notes: MIDINote[]) => void) => void;
@@ -57,13 +72,24 @@ export const useAIGenerationStore = create<AIGenerationState>((set, get) => ({
   
   generationParams: {
     temperature: 0.8,
-    max_notes: 50,
+    max_notes: 32,
     num_steps: 32,
     note_duration: 0.5,
     velocity: 80,
     channel: 0,
   },
   includeExistingNotes: false,
+  
+  // Musical parameters (default values)
+  musicalParams: {
+    scaleRoot: 'A',
+    scaleType: 'Minor',
+    creativityLevel: 70, // 70% creativity
+    musicalStyle: 'Pop',
+    rhythmPattern: 'Simple',
+    noteDensity: 'Moderate',
+  },
+  useMusicalMode: true, // Default to musical mode for better UX
   
   generationHistory: [],
   error: null,
@@ -108,7 +134,24 @@ export const useAIGenerationStore = create<AIGenerationState>((set, get) => ({
   },
   
   setIncludeExistingNotes: (include) => {
+    console.log('📝 setIncludeExistingNotes called with:', include);
+    console.log('📝 Previous state:', get().includeExistingNotes);
     set({ includeExistingNotes: include });
+    console.log('📝 New state:', get().includeExistingNotes);
+  },
+  
+  // Musical parameter actions
+  updateMusicalParams: (params) => {
+    set((state) => ({
+      musicalParams: { ...state.musicalParams, ...params }
+    }));
+  },
+  
+  setUseMusicalMode: (useMusical) => {
+    console.log('🎵 setUseMusicalMode called with:', useMusical);
+    console.log('🎵 Previous state:', get().useMusicalMode);
+    set({ useMusicalMode: useMusical });
+    console.log('🎵 New state:', get().useMusicalMode);
   },
   
   startGeneration: async (existingNotes, onNotesGenerated) => {
@@ -162,9 +205,28 @@ export const useAIGenerationStore = create<AIGenerationState>((set, get) => ({
         }
       }
       
+      // Prepare parameters based on mode (musical vs technical)
+      const apiParams = state.useMusicalMode 
+        ? {
+            // Musical mode: convert user-friendly params to technical
+            scale_root: state.musicalParams.scaleRoot,
+            scale_type: state.musicalParams.scaleType,
+            creativity_level: state.musicalParams.creativityLevel,
+            musical_style: state.musicalParams.musicalStyle,
+            rhythm_pattern: state.musicalParams.rhythmPattern,
+            note_density: state.musicalParams.noteDensity,
+            max_notes: state.generationParams.max_notes,
+            velocity: state.generationParams.velocity,
+            channel: state.generationParams.channel,
+          }
+        : {
+            // Technical mode: use raw parameters
+            ...state.generationParams
+          };
+
       const job = await aiGenerationAPI.startGeneration(
         state.selectedModelId,
-        state.generationParams,
+        apiParams,
         existingNotes,
         state.includeExistingNotes
       );

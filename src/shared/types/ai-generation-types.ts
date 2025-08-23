@@ -2,7 +2,14 @@
 
 export interface AIGenerationParams {
   model_id: string;
-  temperature: number; // 0.1 - 2.0
+  
+  // Prime Token System parameters
+  mode?: 'prime_note' | 'continuation' | 'free_form'; // Generation mode
+  prime_pitch?: number; // MIDI note number for prime token (0-127)
+  prime_duration?: number; // Prime note duration for musical coherence
+  
+  // Core generation parameters
+  temperature: number; // 0.1 - 2.0 (creativity level)
   max_notes: number; // Maximum notes to generate
   num_steps: number; // Generation steps
   note_duration: number; // Default note duration
@@ -10,7 +17,15 @@ export interface AIGenerationParams {
   channel: number; // MIDI channel
   seed?: number; // Random seed for reproducibility
   
-  // Piano roll specific parameters
+  // Musical parameters (user-friendly)
+  scale_root?: string; // Root note (e.g., "A", "C", "F#")
+  scale_type?: 'Major' | 'Minor' | 'Pentatonic' | 'Blues' | 'Dorian' | 'Mixolydian'; // Scale type
+  creativity_level?: number; // 0-100% creativity (maps to temperature)
+  musical_style?: 'Classical' | 'Jazz' | 'Pop' | 'Rock' | 'Electronic' | 'Ambient'; // Musical style hint
+  rhythm_pattern?: 'Simple' | 'Complex' | 'Syncopated' | 'Straight'; // Rhythm complexity
+  note_density?: 'Sparse' | 'Moderate' | 'Dense'; // Note frequency
+  
+  // Legacy parameters for backward compatibility
   scale?: string; // Musical scale (e.g., "C_major", "A_minor")
   key?: string; // Root key
   time_signature?: string; // Time signature
