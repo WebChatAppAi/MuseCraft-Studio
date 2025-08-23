@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![MuseCraft Logo](src/resources/public/illustration.svg)
+![MuseCraft Logo](src/resources/icon.png)
 
 **Professional AI-Powered MIDI Generation Desktop Application**
 
