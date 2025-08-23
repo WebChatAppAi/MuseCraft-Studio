@@ -20,7 +20,7 @@ export interface Instrument {
 }
 
 export const AVAILABLE_INSTRUMENTS: Instrument[] = [
-  { id: 'piano', name: 'Piano', description: 'FM Piano sound' },
+  { id: 'piano', name: 'Piano', description: 'Realistic Grand Piano' },
   { id: 'synth', name: 'Synth', description: 'Classic poly synth' },
   { id: 'amSynth', name: 'AM Synth', description: 'Amplitude modulation' },
   { id: 'fmSynth', name: 'FM Synth', description: 'Frequency modulation' },

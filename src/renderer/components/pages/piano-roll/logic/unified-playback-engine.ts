@@ -87,25 +87,45 @@ export class UnifiedPlaybackEngine {
 
     switch (type) {
       case 'piano':
-        // Piano-like sound using FM synthesis
-        this.currentInstrument = new Tone.PolySynth(Tone.FMSynth, {
-          harmonicity: 3,
-          modulationIndex: 2,
-          oscillator: { type: 'sine' },
-          envelope: {
-            attack: 0.008,
-            decay: 0.2,
-            sustain: 0.4,
-            release: 1.2
+        // Realistic Grand Piano sound using layered synthesis
+        this.currentInstrument = new Tone.PolySynth(Tone.Synth, {
+          oscillator: {
+            type: "sine",
+            harmonics: [1, 0.5, 0.2, 0.1, 0.05, 0.02]
           },
-          modulation: { type: 'sine' },
-          modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.2,
+          envelope: {
+            attack: 0.01,
+            attackCurve: "exponential",
+            decay: 0.3,
+            decayCurve: "exponential",
+            sustain: 0.2,
+            release: 2.5,
+            releaseCurve: "exponential"
+          },
+          filter: {
+            type: "lowpass",
+            frequency: 3000,
+            Q: 1,
+            gain: 0
+          },
+          filterEnvelope: {
+            attack: 0.01,
+            decay: 0.4,
             sustain: 0.3,
-            release: 0.4
+            release: 1.2,
+            baseFrequency: 2000,
+            octaves: 2,
+            exponent: 2
           }
-        }).toDestination();
+        }).chain(
+          new Tone.Compressor(-30, 3),
+          new Tone.EQ3({
+            low: -2,
+            mid: 1,
+            high: -1
+          }),
+          Tone.Destination
+        );
         break;
         
       case 'synth':
