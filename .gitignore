@@ -60,3 +60,5 @@ yarn.lock
 
 # Electron Forge/Builder
 out/
+musical-friendly.md
+dev-notes.md
