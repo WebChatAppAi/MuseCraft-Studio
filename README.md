@@ -8,19 +8,47 @@
 
 🎹 **Create beautiful MIDI compositions with AI assistance**
 
+[![License](https://img.shields.io/badge/license-PVT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
+[![Electron](https://img.shields.io/badge/electron-37.3.1-blue.svg)](https://electronjs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-5.9.2-blue.svg)](https://typescriptlang.org/)
+[![React](https://img.shields.io/badge/react-19.0.0-blue.svg)](https://react.dev/)
+
+**📋 For complete technical documentation, development guide, and architecture details, see [`docs/technical.md`](docs/technical.md)**
+
 </div>
 
 ## 🎯 What is MuseCraft?
 
-MuseCraft is a professional desktop application that combines the power of AI with intuitive MIDI composition tools. Create, edit, and generate stunning MIDI compositions using advanced AI models, all within a beautiful and user-friendly interface.
+MuseCraft is a professional desktop application built with **Electron, React 19, and TypeScript** that combines the power of AI with intuitive MIDI composition tools. It provides a seamless workflow from AI model management to professional MIDI editing, all connected through real-time WebSocket communication with the MuseCraftEngine backend.
+
+### 🏗️ Core Architecture
+- **Frontend**: React 19 + TypeScript with Zustand state management  
+- **Desktop Platform**: Electron with secure IPC communication
+- **UI Framework**: shadcn/ui components + Tailwind CSS
+- **Backend Integration**: REST API + WebSocket for real-time AI model communication
+- **Audio Engine**: Tone.js for MIDI playback and preview
 
 ## ✨ Key Features
 
-- 🤖 **AI-Powered MIDI Generation** - Generate musical notes using advanced AI models
-- 🎹 **Professional Piano Roll Editor** - Full-featured MIDI editor with precision controls
-- 🎵 **Real-time Playback** - Hear your compositions instantly
-- 🎛️ **Advanced Controls** - Fine-tune velocity, timing, and musical parameters
-- 🖥️ **Beautiful Interface** - Modern, responsive design built for creators
+### 🤖 AI Model Management
+- **Dynamic Model Loading**: Load and unload AI models on demand via AI Setup page
+- **Real-time Status Monitoring**: Live WebSocket updates for model status and system health
+- **Backend Connection Testing**: Verify connectivity to MuseCraftEngine before generation
+- **Multiple Model Support**: Manage different AI models for various musical styles
+
+### 🎹 Professional Piano Roll Editor  
+- **Canvas-based Rendering**: Hardware-accelerated grid visualization for performance
+- **Integrated AI Toolbar**: Generate notes directly within the editing interface
+- **Velocity Lane Editing**: Fine-tune note dynamics with visual velocity controls
+- **Real-time Playback**: Instant MIDI preview with Tone.js audio engine
+- **MIDI File Support**: Drag & drop MIDI files for editing and enhancement
+
+### 🔄 Advanced Workflow
+- **Synchronized Scrolling**: Timeline, keyboard, and grid areas scroll in perfect sync
+- **AI Parameter Control**: Adjust creativity, note count, and musical style in real-time
+- **WebSocket Integration**: Live generation progress and completion notifications
+- **State Management**: Zustand-powered state for reliable data flow across components
 
 ## 📸 App Preview
 
@@ -51,72 +79,109 @@ Fine-tune your compositions with velocity lanes and detailed note editing.
 
 ## 🚀 Getting Started
 
-### Step 1: Welcome to MuseCraft
-Launch the application and explore the beautiful landing page that introduces you to all the powerful features available.
+### Prerequisites
+- **Node.js 18+** and **pnpm** (recommended) or npm
+- **MuseCraftEngine Backend** running on `http://localhost:8899`
+- **Git** for cloning the repository
 
-### Step 2: Navigate to AI Setup
-Before creating music, set up your AI models:
-- Browse available AI models
-- Load your preferred model
-- Monitor model status in real-time
-- Test connectivity and performance
+### Quick Start
+```bash
+# 1. Clone the repository
+git clone https://github.com/WebChatAppAi/MuseCraft-Studio.git
+cd MuseCraft-Studio
 
-### Step 3: Open the Piano Roll
-Access the main composition workspace:
-- View the professional piano roll interface
-- Explore the piano keyboard on the left
-- Check out the timeline and measure markers
-- Familiarize yourself with the AI generation toolbar
+# 2. Install dependencies  
+pnpm install
+# or: npm install --legacy-peer-deps
 
-### Step 4: Generate Your First Composition
-1. **Set Parameters**: Adjust creativity, note count, and timing
-2. **Click Generate**: Let AI create musical ideas for you
-3. **Listen & Edit**: Play back and refine your composition
-4. **Fine-tune**: Adjust velocities and note positions
+# 3. Start the application
+pnpm dev
+```
 
-### Step 5: Advanced Editing
-- **Velocity Control**: Use the velocity lane to add dynamics
-- **Precise Timing**: Snap notes to grid or free-form placement
-- **Note Selection**: Select multiple notes for batch editing
-- **Real-time Preview**: Hear changes instantly as you edit
+### First-Time Application Setup
+
+#### Step 1: Launch MuseCraft
+The application opens to the **Quantum Landing** page with a beautiful animated welcome interface.
+
+#### Step 2: Navigate to AI Setup  
+Click "AI Setup" in the sidebar to access the model management hub:
+- **Test Backend Connection**: Verify MuseCraftEngine is running on localhost:8899
+- **Discover Models**: Automatically scan for available AI models
+- **Load Model**: Select and load your preferred model into memory  
+- **Monitor Status**: Real-time WebSocket updates show model loading progress
+
+#### Step 3: Access the Piano Roll Studio
+Navigate to "Piano Roll" to enter the main composition workspace:
+- **Grid Area**: Visual MIDI note representation with canvas-based rendering
+- **Piano Keyboard**: Left sidebar with note names and octave navigation
+- **Timeline**: Top ruler showing measures, beats, and time positions
+- **AI Toolbar**: Right panel with generation controls and parameters
+- **Velocity Lane**: Bottom area for editing note dynamics
+
+#### Step 4: Generate Your First Composition
+1. **Configure AI Parameters**: Set creativity level, note count, and musical style
+2. **Click "Generate"**: AI creates notes based on your parameters
+3. **Real-time Updates**: Watch generation progress via WebSocket notifications
+4. **Edit Results**: Refine generated notes using the professional editor tools
 
 ## 🎵 How to Create Music
 
-### Basic Workflow
-1. **Start with AI Generation**
-   - Choose your desired musical style and parameters
-   - Generate initial musical ideas with AI
-   - Use the generated notes as a foundation
+### Complete AI Generation Workflow
+```
+AI Setup Page → Load Model → Piano Roll → Generate → Edit → Export
+```
 
-2. **Refine Your Composition**
-   - Edit note positions and lengths
-   - Adjust velocities for realistic dynamics
-   - Add or remove notes manually
+### 1. **AI Model Preparation**
+   - **Model Discovery**: Application automatically scans for available AI models
+   - **Backend Verification**: Test connection to MuseCraftEngine on port 8899
+   - **Model Loading**: Select and load models with real-time status updates via WebSocket
+   - **Health Monitoring**: Continuous system status monitoring with error handling
 
-3. **Perfect the Details**
-   - Fine-tune timing and rhythm
-   - Balance velocity levels across notes
-   - Create musical phrases and structures
+### 2. **Professional MIDI Creation**
+   - **AI Generation**: Configure parameters (creativity, note density, musical style)
+   - **Real-time Feedback**: WebSocket notifications for generation progress
+   - **Note Conversion**: Automatic backend ↔ frontend note format conversion
+   - **Integration**: Generated notes seamlessly appear in the piano roll editor
 
-### Pro Tips
-- 💡 **Experiment with Parameters**: Try different AI settings for varied results
-- 🎯 **Layer Generations**: Generate multiple parts and combine them
-- 🎨 **Mix AI and Manual**: Use AI for inspiration, then manually refine
-- 🔄 **Iterate**: Generate, edit, and regenerate to perfect your sound
+### 3. **Advanced Editing & Refinement**
+   - **Canvas-based Editor**: Hardware-accelerated rendering for smooth performance
+   - **Synchronized Views**: Timeline, keyboard, and grid scroll together perfectly
+   - **Velocity Control**: Visual velocity lane for dynamic expression editing
+   - **MIDI I/O**: Drag & drop MIDI files, export compositions
+
+### Technical Implementation Details
+- **State Management**: Zustand stores manage AI generation, piano roll, and UI state
+- **WebSocket Service**: Persistent connection for real-time model status and generation events
+- **Note Synchronization**: Advanced scrolling and view synchronization across all UI components
+- **Audio Engine**: Tone.js provides real-time MIDI playback and preview capabilities
 
 ## 🎨 Interface Guide
 
-### Piano Roll Components
-- **Piano Keys** (Left): Click to hear notes and identify pitches
-- **Grid Area** (Center): Visual representation of your MIDI notes
-- **Timeline** (Top): Shows measures, beats, and time positions
-- **AI Toolbar** (Right): Generation controls and parameters
-- **Velocity Lane** (Bottom): Edit note dynamics and expression
+### Application Structure
+- **Quantum Landing**: Animated welcome page with feature introduction
+- **Main Dashboard**: System overview with metrics, activity feed, and status cards  
+- **AI Setup**: Model management hub with connection testing and WebSocket monitoring
+- **Piano Roll**: Professional MIDI editor with integrated AI generation
 
-### Navigation
-- **Sidebar**: Quick access to all app sections
-- **Header**: Current page and breadcrumb navigation
-- **Status Indicators**: Real-time connection and model status
+### Piano Roll Components (Main Workspace)
+- **Grid Area** (Center): Canvas-based MIDI note visualization with hardware acceleration
+- **Piano Keyboard** (Left): Visual key reference with note names and octave indicators
+- **Timeline** (Top): Measure markers, beat divisions, and time position tracking
+- **AI Toolbar** (Right): Generation controls with real-time parameter adjustment
+- **Velocity Lane** (Bottom): Visual velocity editing with synchronized note selection
+- **Unified Player Head**: Synchronized playback indicator across all timeline components
+
+### AI Setup Interface
+- **Connection Status**: Real-time backend connectivity with WebSocket indicators
+- **System Status Card**: Live system health monitoring and performance metrics
+- **Models Grid**: Available AI models with load/unload controls and status badges
+- **Settings Dialog**: Backend configuration and connection parameters
+
+### Navigation & Layout
+- **Sidebar Navigation**: Quick access to all major application sections
+- **Title Bar**: Custom Electron title bar with window controls
+- **Status Indicators**: Connection status, model status, and generation progress
+- **Responsive Design**: Adaptive layout with consistent theming across all components
 
 ## 🎭 Use Cases
 
@@ -142,12 +207,29 @@ Access the main composition workspace:
 
 ## 🏆 Why Choose MuseCraft?
 
-- **🚀 Easy to Use**: Intuitive interface designed for all skill levels
-- **🎯 Professional Quality**: Industry-standard MIDI editing capabilities
-- **🤖 AI-Powered**: Cutting-edge AI models for creative assistance
-- **⚡ Real-time**: Instant feedback and live generation
-- **🎨 Beautiful**: Modern, responsive design that inspires creativity
-- **🔧 Flexible**: Customize everything to match your workflow
+### Technical Excellence
+- **🚀 Modern Architecture**: Built with React 19, TypeScript, and Electron for reliability
+- **⚡ High Performance**: Canvas-based rendering and hardware acceleration for smooth editing
+- **🔄 Real-time Communication**: WebSocket integration for live updates and status monitoring
+- **🎯 Professional Tools**: Industry-standard MIDI editing with advanced features
+
+### AI Integration
+- **🤖 Local AI Models**: Direct integration with MuseCraftEngine for secure, local processing
+- **📊 Live Feedback**: Real-time generation progress and model status updates
+- **🎵 Seamless Workflow**: AI generation integrated directly into the professional editor
+- **🔧 Flexible Parameters**: Fine-tune creativity, style, and note density for perfect results
+
+### User Experience  
+- **🎨 Beautiful Interface**: shadcn/ui components with consistent design language
+- **🌙 Professional Theme**: Dark theme optimized for long creative sessions
+- **🖱️ Enhanced Interactions**: Mouse wheel controls, keyboard shortcuts, drag & drop
+- **📱 Responsive Design**: Adaptive layout that works across different screen sizes
+
+### Developer-Friendly
+- **🔍 Type Safety**: Full TypeScript implementation with strict type checking
+- **🧪 Modern Tooling**: Vite build system, Biome linting, and hot reload development
+- **📚 Comprehensive Docs**: Detailed technical documentation and architecture guides
+- **🔌 Extensible**: Modular component architecture for easy customization and extension
 
 ## 🎉 Ready to Create?
 
@@ -157,8 +239,16 @@ Download MuseCraft and start your musical journey today. Whether you're a season
 
 <div align="center">
 
-**🎵 For technical documentation and development guide, please refer to `docs/technical.md`**
+### 📚 Documentation & Resources
 
-**Start creating beautiful music with AI assistance! 🎹✨**
+**📋 [Technical Documentation](docs/technical.md)** - Complete development guide, architecture details, and API reference
+
+**🛠️ [Contributing Guide](docs/technical.md#🤝-contributing)** - How to contribute to MuseCraft development
+
+**🔧 [Project Structure](docs/technical.md#📁-project-structure)** - Detailed codebase organization and component hierarchy
+
+---
+
+**🎵 Start creating beautiful music with AI assistance! 🎹✨**
 
 </div>
