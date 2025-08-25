@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            artifact_name: windows-release
+          - os: macos-latest
+            platform: mac
+            artifact_name: macos-release
+          - os: ubuntu-latest
+            platform: linux
+            artifact_name: linux-release
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.0.0
+        
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: Update version (if manual release)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        npm version ${{ github.event.inputs.tag }} --no-git-tag-version
+        
+    - name: Build application
+      run: pnpm run prebuild
+      
+    - name: Build and publish for platform
+      run: pnpm run release --${{ matrix.platform }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/v*/*
+        retention-days: 90
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    if: always() && needs.build-and-release.result == 'success'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./release-artifacts
+        
+    - name: Display structure of downloaded files
+      run: find ./release-artifacts -type f
+      
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./release-artifacts/**/*
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+        body: |
+          ## MuseCraft Studio Release
+          
+          ### Downloads
+          - **Windows**: `.exe` installer and `.zip` portable
+          - **macOS**: `.dmg` installer and `.zip` portable  
+          - **Linux**: `.AppImage` portable, `.deb` package, and other formats
+          
+          ### Installation Instructions
+          - **Windows**: Download and run the `.exe` installer
+          - **macOS**: Download the `.dmg` file and drag MuseCraft to Applications
+          - **Linux**: Download the `.AppImage` and make it executable, or install the `.deb` package
+          
+          Built with Electron Builder from commit ${{ github.sha }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

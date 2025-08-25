@@ -77,15 +77,33 @@ export default {
   win: {
     artifactName,
     icon: `${resources}/build/icons/icon.ico`,
-    target: ['nsis', 'zip'],
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      },
+      {
+        target: 'zip',
+        arch: ['x64']
+      }
+    ],
+    publisherName: author,
+    verifyUpdateCodeSignature: false,
+  },
+
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: displayName,
   },
 
   publish: {
-    provider: 'generic',
-    url: 'YOUR_UPDATE_URL_HERE'
-    // Examples:
-    // GitHub: { provider: 'github', owner: 'your-username', repo: 'your-repo' }
-    // S3: { provider: 's3', bucket: 'your-bucket', region: 'us-east-1' }
-    // Generic: { provider: 'generic', url: 'https://your-update-server.com/' }
+    provider: 'github',
+    owner: 'WebChatAppAi',
+    repo: 'MuseCraft-Studio'
   },
 } satisfies Configuration
