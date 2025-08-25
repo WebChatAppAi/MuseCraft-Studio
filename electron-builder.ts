@@ -63,8 +63,28 @@ export default {
   mac: {
     artifactName,
     icon: `${resources}/build/icons/icon.icns`,
-    category: 'public.app-category.utilities',
-    target: ['zip', 'dmg', 'dir'],
+    category: 'public.app-category.music',
+    target: [
+      {
+        target: 'dmg',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'zip',
+        arch: ['x64', 'arm64']
+      }
+    ],
+    identity: process.env.APPLE_IDENTITY || null,
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
+    darkModeSupport: true,
+    extendInfo: {
+      NSMicrophoneUsageDescription: 'This app requires microphone access for audio input features.',
+      NSCameraUsageDescription: 'This app may use camera for future video features.',
+      NSAppleEventsUsageDescription: 'This app uses Apple Events to communicate with other music applications.',
+    }
   },
 
   linux: {
@@ -77,15 +97,72 @@ export default {
   win: {
     artifactName,
     icon: `${resources}/build/icons/icon.ico`,
-    target: ['nsis', 'zip'],
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      },
+      {
+        target: 'zip',
+        arch: ['x64']
+      },
+      {
+        target: 'portable',
+        arch: ['x64']
+      }
+    ],
+    publisherName: 'MuseCraft Studio',
+    verifyUpdateCodeSignature: false,
+    requestedExecutionLevel: 'asInvoker',
+    certificateFile: process.env.WIN_CSC_LINK || undefined,
+    certificatePassword: process.env.WIN_CSC_KEY_PASSWORD || undefined,
   },
 
-  publish: {
-    provider: 'generic',
-    url: 'YOUR_UPDATE_URL_HERE'
-    // Examples:
-    // GitHub: { provider: 'github', owner: 'your-username', repo: 'your-repo' }
-    // S3: { provider: 's3', bucket: 'your-bucket', region: 'us-east-1' }
-    // Generic: { provider: 'generic', url: 'https://your-update-server.com/' }
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowElevation: true,
+    allowToChangeInstallationDirectory: true,
+    installerIcon: `${resources}/build/icons/icon.ico`,
+    uninstallerIcon: `${resources}/build/icons/icon.ico`,
+    installerHeaderIcon: `${resources}/build/icons/icon.ico`,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: 'MuseCraft Studio',
+    include: 'build/installer.nsh',
+    deleteAppDataOnUninstall: false,
+    runAfterFinish: true,
+    displayLanguageSelector: true
+  },
+
+  portable: {
+    requestExecutionLevel: 'user'
+  },
+
+  publish: [
+    {
+      provider: 'github',
+      owner: 'WebChatAppAi',
+      repo: 'MuseCraft-Studio'
+    }
+  ],
+
+  // Security and signing configurations
+  afterSign: process.env.CSC_LINK ? './scripts/notarize.js' : undefined,
+  
+  // Compression settings for smaller builds
+  compression: 'maximum',
+  
+  // Include license
+  extraMetadata: {
+    license: 'PVT',
+    homepage: 'https://webchatappai.github.io/MuseCraft-Studio/',
+    repository: {
+      type: 'git',
+      url: 'https://github.com/WebChatAppAi/MuseCraft-Studio.git'
+    },
+    bugs: {
+      url: 'https://github.com/WebChatAppAi/MuseCraft-Studio/issues'
+    }
   },
 } satisfies Configuration
