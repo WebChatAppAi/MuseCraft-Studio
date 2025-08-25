@@ -17,6 +17,8 @@ yarn-debug.log*
 yarn-error.log*
 GITHUB_ACTIONS_FIX.md
 ICON_CONFIGURATION.md
+BUILD_FIXES_SUMMARY.md
+GITHUB_ACTIONS_FIX.md
 
 # IDEs and editors
 .vscode/

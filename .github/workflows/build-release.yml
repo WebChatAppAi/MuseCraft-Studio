@@ -167,11 +167,29 @@ jobs:
         shell: powershell
         continue-on-error: true
 
-      - name: 🏗️ Build application
+      - name: 🏗️ Build application (prebuild)
         run: |
-          echo "🏗️ Building MuseCraft Studio for ${{ matrix.name }}..."
-          pnpm run compile:app
-          echo "✅ Application built successfully"
+          echo "🏗️ Running complete prebuild process for ${{ matrix.name }}..."
+          pnpm run prebuild
+          echo "✅ Prebuild completed successfully"
+
+      - name: 🔍 Verify prebuild output
+        run: |
+          echo "🔍 Verifying prebuild created necessary files..."
+          if (Test-Path "node_modules\.dev\main\package.json") {
+            echo "✅ package.json found in .dev directory"
+            Get-Content "node_modules\.dev\main\package.json" | Select-Object -First 10
+          } else {
+            echo "❌ package.json not found in .dev directory!"
+            echo "Directory contents:"
+            if (Test-Path "node_modules\.dev") {
+              Get-ChildItem "node_modules\.dev" -Recurse
+            } else {
+              echo "node_modules\.dev directory does not exist!"
+            }
+            exit 1
+          }
+        shell: powershell
 
       - name: 🔧 Update version in package.json
         run: |
