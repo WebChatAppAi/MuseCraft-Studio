@@ -79,12 +79,40 @@ Fine-tune your compositions with velocity lanes and detailed note editing.
 
 ## 🚀 Getting Started
 
+### ⚠️ **IMPORTANT: Setup MuseCraftEngine First**
+
+Before using MuseCraft Studio's AI features, you **MUST** set up and run the MuseCraftEngine backend:
+
+**🔗 [MuseCraftEngine Repository](https://github.com/WebChatAppAi/MuseCraftEngine)**
+
+#### Quick Engine Setup:
+```bash
+# 1. Clone the engine
+git clone https://github.com/WebChatAppAi/MuseCraftEngine.git
+cd MuseCraftEngine
+
+# 2. Install Python dependencies
+pip install -r requirements.txt
+
+# 3. Download AI models from HuggingFace
+# Visit: https://huggingface.co/projectlosangeles/MuseCraft/tree/main
+# Download .pth files and place them in: ./data/models/
+
+# 4. Start the engine
+python main.py
+```
+
+✅ **Verify engine is running**: Visit http://localhost:8899/docs
+
 ### Prerequisites
 - **Node.js 18+** and **pnpm** (recommended) or npm
-- **MuseCraftEngine Backend** running on `http://localhost:8899`
+- **MuseCraftEngine Backend** running on `http://localhost:8899` ⬆️
 - **Git** for cloning the repository
 
-### Quick Start
+### Quick Start (After Engine Setup)
+
+**⚠️ Make sure MuseCraftEngine is running first!**
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/WebChatAppAi/MuseCraft-Studio.git
@@ -94,19 +122,27 @@ cd MuseCraft-Studio
 pnpm install
 # or: npm install --legacy-peer-deps
 
-# 3. Start the application
+# 3. Start the application (ensure engine is running on localhost:8899)
 pnpm dev
 ```
 
 ### First-Time Application Setup
 
-#### Step 1: Launch MuseCraft
+#### Step 0: **CRITICAL - Ensure Backend is Ready**
+🚨 **Before launching MuseCraft Studio, you MUST have:**
+1. ✅ **MuseCraftEngine running** on http://localhost:8899
+2. ✅ **AI models downloaded** from [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)
+3. ✅ **Models placed** in `MuseCraftEngine/data/models/` directory
+
+**Without the engine, AI features will not work!**
+
+#### Step 1: Launch MuseCraft Studio
 The application opens to the **Quantum Landing** page with a beautiful animated welcome interface.
 
 #### Step 2: Navigate to AI Setup  
 Click "AI Setup" in the sidebar to access the model management hub:
 - **Test Backend Connection**: Verify MuseCraftEngine is running on localhost:8899
-- **Discover Models**: Automatically scan for available AI models
+- **Discover Models**: Automatically scan for available AI models from your engine
 - **Load Model**: Select and load your preferred model into memory  
 - **Monitor Status**: Real-time WebSocket updates show model loading progress
 
@@ -131,8 +167,10 @@ Navigate to "Piano Roll" to enter the main composition workspace:
 AI Setup Page → Load Model → Piano Roll → Generate → Edit → Export
 ```
 
-### 1. **AI Model Preparation**
-   - **Model Discovery**: Application automatically scans for available AI models
+### 1. **AI Model Preparation** (Requires MuseCraftEngine)
+   - **🔗 Engine Setup**: First setup [MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)
+   - **📥 Model Download**: Get models from [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)
+   - **Model Discovery**: Studio scans for models available in your running engine
    - **Backend Verification**: Test connection to MuseCraftEngine on port 8899
    - **Model Loading**: Select and load models with real-time status updates via WebSocket
    - **Health Monitoring**: Continuous system status monitoring with error handling
@@ -241,11 +279,20 @@ Download MuseCraft and start your musical journey today. Whether you're a season
 
 ### 📚 Documentation & Resources
 
-**📋 [Technical Documentation](docs/technical.md)** - Complete development guide, architecture details, and API reference
+### 🔗 **Required Components**
+- **🚀 [MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)** - AI backend server (REQUIRED for AI features)
+- **🤖 [AI Models](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)** - Pre-trained models from HuggingFace
 
-**🛠️ [Contributing Guide](docs/technical.md#🤝-contributing)** - How to contribute to MuseCraft development
+### 📖 **Documentation**
+- **📋 [Technical Documentation](docs/technical.md)** - Complete development guide, architecture details, and API reference
+- **🛠️ [Contributing Guide](docs/technical.md#🤝-contributing)** - How to contribute to MuseCraft development
+- **🔧 [Project Structure](docs/technical.md#📁-project-structure)** - Detailed codebase organization and component hierarchy
 
-**🔧 [Project Structure](docs/technical.md#📁-project-structure)** - Detailed codebase organization and component hierarchy
+### ⚠️ **Setup Reminder**
+**Remember**: MuseCraft Studio is the frontend interface. For AI music generation, you need:
+1. 🔧 **MuseCraftEngine** running on localhost:8899
+2. 📥 **AI models** downloaded and placed in engine's data/models/ folder
+3. ✅ **Connection verified** through Studio's AI Setup page
 
 ---
 
