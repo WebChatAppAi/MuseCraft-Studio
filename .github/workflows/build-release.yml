@@ -147,69 +147,69 @@ jobs:
           pnpm --version
           echo "✅ Installation verified"
 
-      - name: 🧪 Run tests (if available)
+      - name: Run tests (if available)
         run: |
           if (Select-String -Path "package.json" -Pattern '"test"') {
-            echo "🧪 Running tests..."
+            echo "Running tests..."
             pnpm test
           } else {
-            echo "📝 No tests configured, skipping..."
+            echo "No tests configured, skipping..."
           }
         shell: powershell
         continue-on-error: true
 
-      - name: 🧹 Clean previous builds
+      - name: Clean previous builds
         run: |
-          echo "🧹 Cleaning previous builds..."
+          echo "Cleaning previous builds..."
           pnpm run clean:dev
           if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
-          echo "✅ Cleanup completed"
+          echo "Cleanup completed"
         shell: powershell
         continue-on-error: true
 
-      - name: 🔧 Update version in package.json
+      - name: Update version in package.json
         run: |
-          echo "🔧 Updating version to ${{ steps.version.outputs.version }}..."
+          echo "Updating version to ${{ steps.version.outputs.version }}..."
           node -e "
             const pkg = require('./package.json');
             pkg.version = '${{ steps.version.outputs.version }}';
             require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
           "
-          echo "✅ Version updated"
+          echo "Version updated"
 
-      - name: 🏗️ Build everything (one command)
+      - name: Build everything (one command)
         run: |
-          echo "🏗️ Building complete Windows executable for ${{ matrix.name }} in one command..."
+          echo "Building complete Windows executable for ${{ matrix.name }} in one command..."
           if ("${{ matrix.name }}" -eq "Windows-Portable") {
             pnpm run build-everything-portable
           } else {
             pnpm run build-everything
           }
-          echo "✅ Complete build finished successfully"
+          echo "Complete build finished successfully"
         shell: powershell
 
       - name: 🔍 Verify build output
         run: |
-          echo "🔍 Checking build output..."
+          echo "Checking build output..."
           if (Test-Path "dist") {
-            echo "📁 dist directory found"
+            echo "dist directory found"
             Get-ChildItem "dist" -Recurse
             
             $exeFiles = Get-ChildItem "dist" -Recurse -Filter "*.exe"
             if ($exeFiles.Count -gt 0) {
-              echo "📦 Built executable files:"
+              echo "Built executable files:"
               foreach ($file in $exeFiles) {
                 $size = [math]::Round($file.Length / 1MB, 2)
-                echo "  📄 $($file.FullName) ($size MB)"
+                echo "File: $($file.FullName) Size: $size MB"
               }
             } else {
-              echo "❌ No executable files found!"
+              echo "No executable files found!"
               echo "Directory contents:"
               Get-ChildItem "dist" -Recurse | Select-Object -First 20
               exit 1
             }
           } else {
-            echo "❌ No dist directory found!"
+            echo "No dist directory found!"
             exit 1
           }
         shell: powershell
