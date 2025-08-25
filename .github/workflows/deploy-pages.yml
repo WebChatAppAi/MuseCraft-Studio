@@ -33,7 +33,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     environment:
-      name: github-pages
+      name: ${{ github.event_name == 'pull_request' && 'github-pages-staging' || 'github-pages-production' }}
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     
