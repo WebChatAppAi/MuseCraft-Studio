@@ -1,5 +1,8 @@
 import type { Configuration } from 'electron-builder'
 
+// Ensure Node.js types are available
+declare const process: NodeJS.Process
+
 import {
   main,
   name,

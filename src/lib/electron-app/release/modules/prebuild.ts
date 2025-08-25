@@ -20,10 +20,13 @@ async function createPackageJSONDistVersion() {
         JSON.stringify(packageJSONDistVersion, null, 2)
       ),
 
-      writeFile(
-        resolve(getDevFolder(main), packageJSON.pnpm.onlyBuiltDependenciesFile),
-        JSON.stringify(trustedDependencies, null, 2)
-      ),
+      // Only write trusted dependencies if needed
+      ...(trustedDependencies ? [
+        writeFile(
+          resolve(getDevFolder(main), 'trusted-dependencies-scripts.json'),
+          JSON.stringify(trustedDependencies, null, 2)
+        )
+      ] : []),
     ])
   } catch ({ message }: any) {
     console.log(`
