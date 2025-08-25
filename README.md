@@ -1,12 +1,10 @@
-# 🎵 MuseCraft - AI MIDI Generation Studio
+# 🎵 MuseCraft Studio - AI MIDI Generation Desktop App
 
 <div align="center">
 
 ![MuseCraft Logo](src/resources/icon.png)
 
-**Professional AI-Powered MIDI Generation Desktop Application**
-
-🎹 **Create beautiful MIDI compositions with AI assistance**
+**🎹 Professional AI-Powered MIDI Generation Desktop Application**
 
 [![License](https://img.shields.io/badge/license-PVT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
@@ -14,70 +12,22 @@
 [![TypeScript](https://img.shields.io/badge/typescript-5.9.2-blue.svg)](https://typescriptlang.org/)
 [![React](https://img.shields.io/badge/react-19.0.0-blue.svg)](https://react.dev/)
 
-**📋 For complete technical documentation, development guide, and architecture details, see [`docs/technical.md`](docs/technical.md)**
+**Create beautiful MIDI compositions with AI assistance**
 
 </div>
 
-## 🎯 What is MuseCraft?
+## 🎯 What is MuseCraft Studio?
 
-MuseCraft is a professional desktop application built with **Electron, React 19, and TypeScript** that combines the power of AI with intuitive MIDI composition tools. It provides a seamless workflow from AI model management to professional MIDI editing, all connected through real-time WebSocket communication with the MuseCraftEngine backend.
+MuseCraft Studio is a professional desktop application built with **Electron, React 19, and TypeScript** that combines AI music generation with intuitive MIDI editing. It provides a seamless workflow from AI model management to professional MIDI composition.
 
-### 🏗️ Core Architecture
-- **Frontend**: React 19 + TypeScript with Zustand state management  
-- **Desktop Platform**: Electron with secure IPC communication
-- **UI Framework**: shadcn/ui components + Tailwind CSS
-- **Backend Integration**: REST API + WebSocket for real-time AI model communication
-- **Audio Engine**: Tone.js for MIDI playback and preview
+### ✨ Key Features
+- **🤖 AI Model Management**: Load and manage AI models with real-time status monitoring
+- **🎹 Professional Piano Roll Editor**: Full-featured MIDI editor with velocity control
+- **⚡ Real-time Communication**: WebSocket integration with MuseCraftEngine backend
+- **🎵 MIDI Import/Export**: Compatible with all major DAWs and music software
+- **🎨 Modern UI**: Beautiful interface built with shadcn/ui + Tailwind CSS
 
-## ✨ Key Features
-
-### 🤖 AI Model Management
-- **Dynamic Model Loading**: Load and unload AI models on demand via AI Setup page
-- **Real-time Status Monitoring**: Live WebSocket updates for model status and system health
-- **Backend Connection Testing**: Verify connectivity to MuseCraftEngine before generation
-- **Multiple Model Support**: Manage different AI models for various musical styles
-
-### 🎹 Professional Piano Roll Editor  
-- **Canvas-based Rendering**: Hardware-accelerated grid visualization for performance
-- **Integrated AI Toolbar**: Generate notes directly within the editing interface
-- **Velocity Lane Editing**: Fine-tune note dynamics with visual velocity controls
-- **Real-time Playback**: Instant MIDI preview with Tone.js audio engine
-- **MIDI File Support**: Drag & drop MIDI files for editing and enhancement
-
-### 🔄 Advanced Workflow
-- **Synchronized Scrolling**: Timeline, keyboard, and grid areas scroll in perfect sync
-- **AI Parameter Control**: Adjust creativity, note count, and musical style in real-time
-- **WebSocket Integration**: Live generation progress and completion notifications
-- **State Management**: Zustand-powered state for reliable data flow across components
-
-## 📸 App Preview
-
-### 🌟 Landing Page
-Experience MuseCraft's beautiful welcome interface with smooth animations and modern design.
-
-![Landing Page](preview/landing-page.png)
-
-### 📊 Dashboard
-Your creative hub with quick access to all features and project management.
-
-![Dashboard](preview/dashboard.png)
-
-### 🤖 AI Setup
-Easy AI model management with real-time status monitoring and intuitive controls.
-
-![AI Setup](preview/aisetup.png)
-
-### 🎼 Piano Roll Studio
-Professional MIDI editor where the magic happens - create, edit, and generate music.
-
-![Musical Configuration](preview/musicalconfig.png)
-
-### 🎚️ Advanced Controls
-Fine-tune your compositions with velocity lanes and detailed note editing.
-
-![Velocity & Notes](preview/velocity&notes.png)
-
-## 🚀 Getting Started
+## 🚀 Quick Installation Guide
 
 ### ⚠️ **IMPORTANT: Setup MuseCraftEngine First**
 
@@ -91,27 +41,32 @@ Before using MuseCraft Studio's AI features, you **MUST** set up and run the Mus
 git clone https://github.com/WebChatAppAi/MuseCraftEngine.git
 cd MuseCraftEngine
 
-# 2. Install Python dependencies
+# 2. Install PyTorch for your system (CUDA/CPU/MPS)
+# NVIDIA GPU: pip install torch --index-url https://download.pytorch.org/whl/cu118
+# Apple Silicon: pip install torch
+# CPU Only: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 3. Download AI models from HuggingFace
+# 4. Download AI models from HuggingFace
 # Visit: https://huggingface.co/projectlosangeles/MuseCraft/tree/main
 # Download .pth files and place them in: ./data/models/
 
-# 4. Start the engine
+# 5. Start the engine
 python main.py
 ```
 
 ✅ **Verify engine is running**: Visit http://localhost:8899/docs
 
-### Prerequisites
+### Studio Installation
+
+#### Prerequisites
 - **Node.js 18+** and **pnpm** (recommended) or npm
 - **MuseCraftEngine Backend** running on `http://localhost:8899` ⬆️
 - **Git** for cloning the repository
 
-### Quick Start (After Engine Setup)
-
-**⚠️ Make sure MuseCraftEngine is running first!**
+#### Install and Run Studio
 
 ```bash
 # 1. Clone the repository
@@ -126,9 +81,15 @@ pnpm install
 pnpm dev
 ```
 
-### First-Time Application Setup
+## 🎼 Piano Roll Studio Preview
 
-#### Step 0: **CRITICAL - Ensure Backend is Ready**
+![Piano Roll Studio](preview/musicalconfig.png)
+
+*The main creative workspace where AI meets professional MIDI editing*
+
+## 🎵 First-Time Setup
+
+### Step 0: **CRITICAL - Ensure Backend is Ready**
 🚨 **Before launching MuseCraft Studio, you MUST have:**
 1. ✅ **MuseCraftEngine running** on http://localhost:8899
 2. ✅ **AI models downloaded** from [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)
@@ -136,17 +97,17 @@ pnpm dev
 
 **Without the engine, AI features will not work!**
 
-#### Step 1: Launch MuseCraft Studio
+### Step 1: Launch MuseCraft Studio
 The application opens to the **Quantum Landing** page with a beautiful animated welcome interface.
 
-#### Step 2: Navigate to AI Setup  
+### Step 2: Navigate to AI Setup  
 Click "AI Setup" in the sidebar to access the model management hub:
 - **Test Backend Connection**: Verify MuseCraftEngine is running on localhost:8899
 - **Discover Models**: Automatically scan for available AI models from your engine
 - **Load Model**: Select and load your preferred model into memory  
 - **Monitor Status**: Real-time WebSocket updates show model loading progress
 
-#### Step 3: Access the Piano Roll Studio
+### Step 3: Access the Piano Roll Studio
 Navigate to "Piano Roll" to enter the main composition workspace:
 - **Grid Area**: Visual MIDI note representation with canvas-based rendering
 - **Piano Keyboard**: Left sidebar with note names and octave navigation
@@ -154,139 +115,44 @@ Navigate to "Piano Roll" to enter the main composition workspace:
 - **AI Toolbar**: Right panel with generation controls and parameters
 - **Velocity Lane**: Bottom area for editing note dynamics
 
-#### Step 4: Generate Your First Composition
+### Step 4: Generate Your First Composition
 1. **Configure AI Parameters**: Set creativity level, note count, and musical style
 2. **Click "Generate"**: AI creates notes based on your parameters
 3. **Real-time Updates**: Watch generation progress via WebSocket notifications
 4. **Edit Results**: Refine generated notes using the professional editor tools
 
-## 🎵 How to Create Music
-
-### Complete AI Generation Workflow
-```
-AI Setup Page → Load Model → Piano Roll → Generate → Edit → Export
-```
-
-### 1. **AI Model Preparation** (Requires MuseCraftEngine)
-   - **🔗 Engine Setup**: First setup [MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)
-   - **📥 Model Download**: Get models from [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)
-   - **Model Discovery**: Studio scans for models available in your running engine
-   - **Backend Verification**: Test connection to MuseCraftEngine on port 8899
-   - **Model Loading**: Select and load models with real-time status updates via WebSocket
-   - **Health Monitoring**: Continuous system status monitoring with error handling
-
-### 2. **Professional MIDI Creation**
-   - **AI Generation**: Configure parameters (creativity, note density, musical style)
-   - **Real-time Feedback**: WebSocket notifications for generation progress
-   - **Note Conversion**: Automatic backend ↔ frontend note format conversion
-   - **Integration**: Generated notes seamlessly appear in the piano roll editor
-
-### 3. **Advanced Editing & Refinement**
-   - **Canvas-based Editor**: Hardware-accelerated rendering for smooth performance
-   - **Synchronized Views**: Timeline, keyboard, and grid scroll together perfectly
-   - **Velocity Control**: Visual velocity lane for dynamic expression editing
-   - **MIDI I/O**: Drag & drop MIDI files, export compositions
-
-### Technical Implementation Details
-- **State Management**: Zustand stores manage AI generation, piano roll, and UI state
-- **WebSocket Service**: Persistent connection for real-time model status and generation events
-- **Note Synchronization**: Advanced scrolling and view synchronization across all UI components
-- **Audio Engine**: Tone.js provides real-time MIDI playback and preview capabilities
-
-## 🎨 Interface Guide
-
-### Application Structure
-- **Quantum Landing**: Animated welcome page with feature introduction
-- **Main Dashboard**: System overview with metrics, activity feed, and status cards  
-- **AI Setup**: Model management hub with connection testing and WebSocket monitoring
-- **Piano Roll**: Professional MIDI editor with integrated AI generation
-
-### Piano Roll Components (Main Workspace)
-- **Grid Area** (Center): Canvas-based MIDI note visualization with hardware acceleration
-- **Piano Keyboard** (Left): Visual key reference with note names and octave indicators
-- **Timeline** (Top): Measure markers, beat divisions, and time position tracking
-- **AI Toolbar** (Right): Generation controls with real-time parameter adjustment
-- **Velocity Lane** (Bottom): Visual velocity editing with synchronized note selection
-- **Unified Player Head**: Synchronized playback indicator across all timeline components
-
-### AI Setup Interface
-- **Connection Status**: Real-time backend connectivity with WebSocket indicators
-- **System Status Card**: Live system health monitoring and performance metrics
-- **Models Grid**: Available AI models with load/unload controls and status badges
-- **Settings Dialog**: Backend configuration and connection parameters
-
-### Navigation & Layout
-- **Sidebar Navigation**: Quick access to all major application sections
-- **Title Bar**: Custom Electron title bar with window controls
-- **Status Indicators**: Connection status, model status, and generation progress
-- **Responsive Design**: Adaptive layout with consistent theming across all components
-
 ## 🎭 Use Cases
 
-### 🎼 Composers
+### 🎼 **For Composers**
 - Generate initial musical ideas and themes
 - Explore new harmonic progressions
 - Break through creative blocks
 
-### 🎵 Producers
+### 🎵 **For Producers**
 - Create backing tracks and accompaniments
 - Generate rhythm patterns and bass lines
 - Develop melodic hooks and riffs
 
-### 🎹 Musicians
+### 🎹 **For Musicians**
 - Practice with AI-generated exercises
 - Explore different musical styles
 - Learn from AI-created patterns
 
-### 🎓 Students
+### 🎓 **For Students**
 - Study music theory through AI examples
 - Analyze generated compositions
 - Experiment with different musical concepts
 
-## 🏆 Why Choose MuseCraft?
-
-### Technical Excellence
-- **🚀 Modern Architecture**: Built with React 19, TypeScript, and Electron for reliability
-- **⚡ High Performance**: Canvas-based rendering and hardware acceleration for smooth editing
-- **🔄 Real-time Communication**: WebSocket integration for live updates and status monitoring
-- **🎯 Professional Tools**: Industry-standard MIDI editing with advanced features
-
-### AI Integration
-- **🤖 Local AI Models**: Direct integration with MuseCraftEngine for secure, local processing
-- **📊 Live Feedback**: Real-time generation progress and model status updates
-- **🎵 Seamless Workflow**: AI generation integrated directly into the professional editor
-- **🔧 Flexible Parameters**: Fine-tune creativity, style, and note density for perfect results
-
-### User Experience  
-- **🎨 Beautiful Interface**: shadcn/ui components with consistent design language
-- **🌙 Professional Theme**: Dark theme optimized for long creative sessions
-- **🖱️ Enhanced Interactions**: Mouse wheel controls, keyboard shortcuts, drag & drop
-- **📱 Responsive Design**: Adaptive layout that works across different screen sizes
-
-### Developer-Friendly
-- **🔍 Type Safety**: Full TypeScript implementation with strict type checking
-- **🧪 Modern Tooling**: Vite build system, Biome linting, and hot reload development
-- **📚 Comprehensive Docs**: Detailed technical documentation and architecture guides
-- **🔌 Extensible**: Modular component architecture for easy customization and extension
-
-## 🎉 Ready to Create?
-
-Download MuseCraft and start your musical journey today. Whether you're a seasoned professional or just starting out, MuseCraft provides the tools and AI assistance you need to create amazing music.
-
----
-
-<div align="center">
-
-### 📚 Documentation & Resources
+## 📚 Documentation
 
 ### 🔗 **Required Components**
 - **🚀 [MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)** - AI backend server (REQUIRED for AI features)
 - **🤖 [AI Models](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)** - Pre-trained models from HuggingFace
 
 ### 📖 **Documentation**
-- **📋 [Technical Documentation](docs/technical.md)** - Complete development guide, architecture details, and API reference
+- **📘 [Complete Usage Guide](docs/usage-guide.md)** - Detailed interface guide and creative workflows
+- **📋 [Technical Documentation](docs/technical.md)** - Architecture details and API reference
 - **🛠️ [Contributing Guide](docs/technical.md#🤝-contributing)** - How to contribute to MuseCraft development
-- **🔧 [Project Structure](docs/technical.md#📁-project-structure)** - Detailed codebase organization and component hierarchy
 
 ### ⚠️ **Setup Reminder**
 **Remember**: MuseCraft Studio is the frontend interface. For AI music generation, you need:
@@ -296,6 +162,10 @@ Download MuseCraft and start your musical journey today. Whether you're a season
 
 ---
 
+<div align="center">
+
 **🎵 Start creating beautiful music with AI assistance! 🎹✨**
+
+*Made with ❤️ for the AI music community*
 
 </div>
