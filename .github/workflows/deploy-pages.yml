@@ -83,6 +83,9 @@ jobs:
           # Create optimized versions of large images (optional, preserve originals)
           mkdir -p docs/optimized-preview
           
+          # Ensure site icon is available within docs for GitHub Pages
+          cp -f src/resources/icon.png docs/icon.png || true
+          
           # Optimize preview images for faster loading
           for img in preview/*.png; do
             if [ -f "$img" ]; then
