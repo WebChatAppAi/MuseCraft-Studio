@@ -49,13 +49,6 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            name: Windows
-            build_script: build:win
-            executable_ext: .exe
-            artifact_pattern: 'dist/v*/MuseCraft-v*-win.exe'
-            artifact_name: 'MuseCraft-Studio-Windows'
-            
-          - os: windows-latest
             name: Windows-Portable
             build_script: build:win-portable
             executable_ext: .exe
@@ -179,12 +172,8 @@ jobs:
 
       - name: Build everything (one command)
         run: |
-          echo "Building complete Windows executable for ${{ matrix.name }} in one command..."
-          if ("${{ matrix.name }}" -eq "Windows-Portable") {
-            pnpm run build-everything-portable
-          } else {
-            pnpm run build-everything
-          }
+          echo "Building complete Windows portable executable..."
+          pnpm run build-everything
           echo "Complete build finished successfully"
         shell: powershell
 

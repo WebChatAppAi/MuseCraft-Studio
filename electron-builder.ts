@@ -115,14 +115,6 @@ export default {
     icon: `${resources}/icon.ico`,
     target: [
       {
-        target: 'nsis',
-        arch: ['x64']
-      },
-      {
-        target: 'zip',
-        arch: ['x64']
-      },
-      {
         target: 'portable',
         arch: ['x64']
       }
@@ -134,22 +126,7 @@ export default {
     certificatePassword: process.env.WIN_CSC_KEY_PASSWORD || undefined,
   },
 
-  nsis: {
-    oneClick: false,
-    perMachine: false,
-    allowElevation: true,
-    allowToChangeInstallationDirectory: true,
-    installerIcon: `${resources}/icon.ico`,
-    uninstallerIcon: `${resources}/icon.ico`,
-    installerHeaderIcon: `${resources}/icon.ico`,
-    createDesktopShortcut: true,
-    createStartMenuShortcut: true,
-    shortcutName: 'MuseCraft Studio',
-    include: 'build/installer.nsh',
-    deleteAppDataOnUninstall: false,
-    runAfterFinish: true,
-    displayLanguageSelector: true
-  },
+
 
   portable: {
     requestExecutionLevel: 'user'
