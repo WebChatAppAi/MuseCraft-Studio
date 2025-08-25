@@ -51,6 +51,18 @@ export default {
       from: `${resources}/public`,
       to: 'public',
       filter: ['**/*']
+    },
+    {
+      from: `${resources}/icon.ico`,
+      to: 'icon.ico'
+    },
+    {
+      from: `${resources}/icon.icns`,
+      to: 'icon.icns'
+    },
+    {
+      from: `${resources}/icon.png`,
+      to: 'icon.png'
     }
     // Add your custom resources here
     // {
@@ -62,7 +74,7 @@ export default {
 
   mac: {
     artifactName,
-    icon: `${resources}/build/icons/icon.icns`,
+    icon: `${resources}/icon.icns`,
     category: 'public.app-category.music',
     target: [
       {
@@ -89,14 +101,15 @@ export default {
 
   linux: {
     artifactName,
-    category: 'Utilities',
+    icon: `${resources}/icon.png`,
+    category: 'AudioVideo',
     synopsis: description,
     target: ['AppImage', 'deb', 'pacman', 'freebsd', 'rpm'],
   },
 
   win: {
     artifactName,
-    icon: `${resources}/build/icons/icon.ico`,
+    icon: `${resources}/icon.ico`,
     target: [
       {
         target: 'nsis',
@@ -123,9 +136,9 @@ export default {
     perMachine: false,
     allowElevation: true,
     allowToChangeInstallationDirectory: true,
-    installerIcon: `${resources}/build/icons/icon.ico`,
-    uninstallerIcon: `${resources}/build/icons/icon.ico`,
-    installerHeaderIcon: `${resources}/build/icons/icon.ico`,
+    installerIcon: `${resources}/icon.ico`,
+    uninstallerIcon: `${resources}/icon.ico`,
+    installerHeaderIcon: `${resources}/icon.ico`,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
     shortcutName: 'MuseCraft Studio',

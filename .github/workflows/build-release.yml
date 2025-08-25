@@ -1,4 +1,4 @@
-name: Build and Release MuseCraft Studio v1
+name: Build and Release MuseCraft Studio (Windows)
 
 on:
   push:
@@ -39,10 +39,11 @@ on:
 env:
   ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
   ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+  PNPM_CACHE_FOLDER: ${{ github.workspace }}/.cache/pnpm
 
 jobs:
   build:
-    name: Build MuseCraft Studio
+    name: Build MuseCraft Studio (Windows)
     strategy:
       fail-fast: false
       matrix:
@@ -60,20 +61,6 @@ jobs:
             executable_ext: .exe
             artifact_pattern: 'dist/v*/MuseCraft-v*-win-portable.exe'
             artifact_name: 'MuseCraft-Studio-Windows-Portable'
-            
-          - os: macos-latest
-            name: macOS
-            build_script: build:mac
-            executable_ext: .dmg
-            artifact_pattern: 'dist/v*/MuseCraft-v*-mac.dmg'
-            artifact_name: 'MuseCraft-Studio-macOS'
-            
-          - os: macos-latest
-            name: macOS-ARM64
-            build_script: build:mac-arm64
-            executable_ext: .dmg
-            artifact_pattern: 'dist/v*/MuseCraft-v*-mac-arm64.dmg'
-            artifact_name: 'MuseCraft-Studio-macOS-ARM64'
 
     runs-on: ${{ matrix.os }}
     
@@ -99,10 +86,10 @@ jobs:
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Version: $VERSION"
 
-      - name: 📦 Setup pnpm (install before Node cache step)
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 8
           run_install: false
 
       - name: 🟢 Setup Node.js
@@ -112,11 +99,11 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
-      - name: ✅ Verify pnpm is available
+      - name: ✅ Verify pnpm and Node.js are available
         run: |
+          echo "node version:" && node --version
           echo "pnpm version:" && pnpm --version
-          echo "node:" && node --version
-          echo "npm:" && npm --version
+          echo "npm version:" && npm --version
 
       - name: 🗂️ Get pnpm store directory
         shell: bash
@@ -147,8 +134,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-electron-builder-
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install dependencies with pnpm
         run: |
+          echo "📦 Installing dependencies with pnpm..."
           pnpm install --frozen-lockfile
           echo "✅ Dependencies installed successfully"
 
@@ -157,29 +145,33 @@ jobs:
           echo "📋 Verifying installation..."
           pnpm list --depth=0
           node --version
-          npm --version
+          pnpm --version
           echo "✅ Installation verified"
 
       - name: 🧪 Run tests (if available)
         run: |
-          if grep -q '"test"' package.json; then
+          if (Select-String -Path "package.json" -Pattern '"test"') {
             echo "🧪 Running tests..."
-            pnpm test || echo "⚠️ Tests failed but continuing build"
-          else
+            pnpm test
+          } else {
             echo "📝 No tests configured, skipping..."
-          fi
+          }
+        shell: powershell
+        continue-on-error: true
 
       - name: 🧹 Clean previous builds
         run: |
           echo "🧹 Cleaning previous builds..."
-          pnpm clean:dev || echo "⚠️ Clean command not available"
-          rm -rf dist || true
+          pnpm run clean:dev
+          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
           echo "✅ Cleanup completed"
+        shell: powershell
+        continue-on-error: true
 
       - name: 🏗️ Build application
         run: |
           echo "🏗️ Building MuseCraft Studio for ${{ matrix.name }}..."
-          pnpm compile:app
+          pnpm run compile:app
           echo "✅ Application built successfully"
 
       - name: 🔧 Update version in package.json
@@ -193,53 +185,41 @@ jobs:
           echo "✅ Version updated"
 
       - name: 🏗️ Build Windows executable
-        if: matrix.os == 'windows-latest'
         run: |
-          echo "🏗️ Building Windows executable..."
-          if [ "${{ matrix.name }}" == "Windows-Portable" ]; then
+          echo "🏗️ Building Windows executable for ${{ matrix.name }}..."
+          if ("${{ matrix.name }}" -eq "Windows-Portable") {
             pnpm electron-builder --win portable --publish never
-          else
+          } else {
             pnpm electron-builder --win nsis --publish never
-          fi
+          }
           echo "✅ Windows build completed"
-        shell: bash
-
-      - name: 🏗️ Build macOS application
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "🏗️ Building macOS application..."
-          if [ "${{ matrix.name }}" == "macOS-ARM64" ]; then
-            pnpm electron-builder --mac --arm64 --publish never
-          else
-            pnpm electron-builder --mac --x64 --publish never
-          fi
-          echo "✅ macOS build completed"
+        shell: powershell
 
       - name: 🔍 Verify build output
-        shell: bash
         run: |
           echo "🔍 Checking build output..."
-          ls -la dist/ || echo "No dist directory found"
-          find dist -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" | head -10
-          
-          # Find the actual built files
-          if [ -d "dist" ]; then
-            BUILD_FILES=$(find dist -type f \( -name "*.exe" -o -name "*.dmg" \) | head -5)
-            if [ -n "$BUILD_FILES" ]; then
-              echo "📦 Built files:"
-              echo "$BUILD_FILES" | while read file; do
-                echo "  📄 $file ($(du -h "$file" | cut -f1))"
-              done
-            else
+          if (Test-Path "dist") {
+            echo "📁 dist directory found"
+            Get-ChildItem "dist" -Recurse
+            
+            $exeFiles = Get-ChildItem "dist" -Recurse -Filter "*.exe"
+            if ($exeFiles.Count -gt 0) {
+              echo "📦 Built executable files:"
+              foreach ($file in $exeFiles) {
+                $size = [math]::Round($file.Length / 1MB, 2)
+                echo "  📄 $($file.FullName) ($size MB)"
+              }
+            } else {
               echo "❌ No executable files found!"
               echo "Directory contents:"
-              find dist -type f | head -20
+              Get-ChildItem "dist" -Recurse | Select-Object -First 20
               exit 1
-            fi
-          else
+            }
+          } else {
             echo "❌ No dist directory found!"
             exit 1
-          fi
+          }
+        shell: powershell
 
       - name: 🏷️ Prepare artifact name
         id: artifact
@@ -256,10 +236,6 @@ jobs:
           name: ${{ steps.artifact.outputs.name }}
           path: |
             dist/**/*.exe
-            dist/**/*.dmg
-            dist/**/*.AppImage
-            dist/**/*.deb
-            dist/**/*.rpm
             dist/**/*.zip
           retention-days: 30
           if-no-files-found: error
@@ -335,7 +311,7 @@ jobs:
           find artifacts -type f | sort
           
           echo "📊 File sizes:"
-          find artifacts -type f -name "*.exe" -o -name "*.dmg" | while read file; do
+          find artifacts -type f -name "*.exe" | while read file; do
             echo "  📄 $(basename "$file"): $(du -h "$file" | cut -f1)"
           done
 
@@ -356,15 +332,13 @@ jobs:
           - 🎨 **Modern Dark Theme UI**: Beautiful interface built with React 19 and shadcn/ui components
           - 🔧 **Advanced AI Controls**: Fine-tune creativity, note density, musical style, and generation parameters
           
-          ## 📥 Downloads
+          ## 📥 Downloads (Windows Only)
           
           ### Windows
           - **MuseCraft-Studio-Windows**: Standard Windows installer with auto-updates
           - **MuseCraft-Studio-Windows-Portable**: Portable version that doesn't require installation
           
-          ### macOS
-          - **MuseCraft-Studio-macOS**: Universal macOS application (Intel Macs)
-          - **MuseCraft-Studio-macOS-ARM64**: Optimized for Apple Silicon (M1/M2/M3 Macs)
+          > 📝 **Note**: This release currently includes Windows builds only. macOS and Linux builds will be added in future releases.
           
           ## 🚀 Getting Started
           
@@ -384,14 +358,13 @@ jobs:
           
           ### Minimum
           - **Windows**: Windows 10 (64-bit) or later
-          - **macOS**: macOS 10.14 Mojave or later
           - **RAM**: 4GB (8GB recommended)
           - **Storage**: 500MB for application + space for AI models
           
           ### Recommended
           - **CPU**: 4+ cores (Intel i5/AMD Ryzen 5 or better)
           - **RAM**: 8GB+ (16GB for multiple large models)
-          - **GPU**: NVIDIA GPU with CUDA or Apple Silicon for accelerated AI generation
+          - **GPU**: NVIDIA GPU with CUDA for accelerated AI generation
           - **Storage**: SSD for faster model loading
           
           ## 🤖 AI Models
@@ -449,11 +422,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: "MuseCraft Studio ${{ steps.version.outputs.tag }}"
+          name: "MuseCraft Studio ${{ steps.version.outputs.tag }} (Windows)"
           body_path: ${{ steps.release_notes.outputs.release_notes_file }}
           files: |
             artifacts/**/*.exe
-            artifacts/**/*.dmg
             artifacts/**/*.zip
             artifacts/**/*.json
           draft: false
@@ -473,11 +445,10 @@ jobs:
           echo "- **Created**: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🖥️ Available Downloads" >> $GITHUB_STEP_SUMMARY
+          echo "### 🖥️ Available Downloads (Windows Only)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **Windows Installer**: Standard Windows installation" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **Windows Portable**: No installation required" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **macOS Intel**: For Intel-based Macs" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **macOS ARM64**: Optimized for Apple Silicon (M1/M2/M3)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📝 **Note**: macOS and Linux builds will be added in future releases" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
           echo "- 🚀 **[Download Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})**" >> $GITHUB_STEP_SUMMARY
@@ -499,7 +470,6 @@ jobs:
         with:
           name: |
             MuseCraft-Studio-Windows-*
-            MuseCraft-Studio-macOS-*
             build-info-*
           failOnError: false
           useGlob: true
