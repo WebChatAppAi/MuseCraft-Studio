@@ -1,0 +1,710 @@
+name: Build MuseCraft Studio & Deploy Pages
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.0.0)'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+      deploy_pages:
+        description: 'Deploy to GitHub Pages'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+  PNPM_CACHE_FOLDER: ${{ github.workspace }}/.cache/pnpm
+
+# Sets permissions for both releases and pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages-and-release"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build MuseCraft Studio (Windows)
+    runs-on: windows-latest
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Get version info
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Get version from package.json
+            VERSION=$(cat package.json | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
+            # If no version found, use timestamp-based version
+            if [ -z "$VERSION" ] || [ "$VERSION" = "" ]; then
+              VERSION="1.0.$(date +%Y%m%d%H%M)"
+            fi
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: 🗂️ Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: 🗂️ Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: 🗂️ Setup Electron cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: ${{ runner.os }}-electron-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: 🗂️ Setup Electron Builder cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_BUILDER_CACHE }}
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
+
+      - name: 📦 Install dependencies with pnpm
+        run: |
+          echo "📦 Installing dependencies with pnpm..."
+          pnpm install --frozen-lockfile
+          echo "✅ Dependencies installed successfully"
+
+      - name: Run tests (if available)
+        run: |
+          if (Select-String -Path "package.json" -Pattern '"test"') {
+            echo "Running tests..."
+            pnpm test
+          } else {
+            echo "No tests configured, skipping..."
+          }
+        shell: powershell
+        continue-on-error: true
+
+      - name: Clean previous builds
+        run: |
+          echo "Cleaning previous builds..."
+          if (Get-Command "pnpm" -ErrorAction SilentlyContinue) {
+            pnpm run clean:dev
+          }
+          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
+          echo "Cleanup completed"
+        shell: powershell
+        continue-on-error: true
+
+      - name: Update version in package.json
+        run: |
+          echo "Updating version to ${{ steps.version.outputs.version }}..."
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${{ steps.version.outputs.version }}';
+            require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+          "
+          echo "Version updated"
+
+      - name: Build everything (one command)
+        run: |
+          echo "Building complete Windows portable executable..."
+          pnpm run build-everything
+          echo "Complete build finished successfully"
+        shell: powershell
+
+      - name: 🔍 Verify build output
+        run: |
+          echo "Checking build output..."
+          if (Test-Path "dist") {
+            echo "dist directory found"
+            Get-ChildItem "dist" -Recurse | Format-Table Name, Length, FullName -AutoSize
+            
+            $exeFiles = Get-ChildItem "dist" -Recurse -Filter "*.exe"
+            $zipFiles = Get-ChildItem "dist" -Recurse -Filter "*.zip"
+            
+            if ($exeFiles.Count -gt 0) {
+              echo "Built executable files:"
+              foreach ($file in $exeFiles) {
+                $size = [math]::Round($file.Length / 1MB, 2)
+                echo "File: $($file.FullName) Size: $size MB"
+              }
+            } else {
+              echo "No executable files found!"
+            }
+            
+            if ($zipFiles.Count -gt 0) {
+              echo "Built zip files:"
+              foreach ($file in $zipFiles) {
+                $size = [math]::Round($file.Length / 1MB, 2)
+                echo "File: $($file.FullName) Size: $size MB"
+              }
+            } else {
+              echo "No zip files found!"
+            }
+            
+            if ($exeFiles.Count -eq 0 -and $zipFiles.Count -eq 0) {
+              echo "No distributable files found!"
+              echo "Directory contents:"
+              Get-ChildItem "dist" -Recurse | Select-Object -First 30
+              exit 1
+            }
+          } else {
+            echo "No dist directory found!"
+            exit 1
+          }
+        shell: powershell
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuseCraft-Studio-Windows-v${{ steps.version.outputs.version }}
+          path: |
+            dist/**/*
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 📋 Generate build info
+        shell: bash
+        run: |
+          echo "📋 Generating build information..."
+          cat > build-info.json << EOF
+          {
+            "name": "MuseCraft Studio",
+            "version": "${{ steps.version.outputs.version }}",
+            "platform": "Windows",
+            "node_version": "$(node --version)",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "actor": "${{ github.actor }}"
+          }
+          EOF
+          echo "✅ Build info generated"
+
+      - name: 📤 Upload build info
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: build-info.json
+          retention-days: 30
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+
+  pages:
+    name: Deploy GitHub Pages
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_pages == 'true')
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check if GitHub Pages exists
+        id: pages_check
+        run: |
+          echo "🔍 Checking if docs directory exists..."
+          if [ -d "docs" ] && [ -f "docs/index.html" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ GitHub Pages content found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "❌ No GitHub Pages content found (docs/index.html missing)"
+          fi
+
+      - name: 🏗️ Setup GitHub Pages content
+        if: steps.pages_check.outputs.exists == 'false'
+        run: |
+          echo "🏗️ Creating basic GitHub Pages content..."
+          mkdir -p docs
+          
+          cat > docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>MuseCraft Studio - AI-Powered MIDI Generation</title>
+              <meta name="description" content="AI-Powered MIDI Generation Desktop Studio for creating beautiful music with advanced AI models">
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+                      color: #ffffff;
+                      min-height: 100vh;
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      text-align: center;
+                      padding: 20px;
+                  }
+                  .container { max-width: 800px; margin: 0 auto; }
+                  h1 { 
+                      font-size: 3.5rem; 
+                      margin-bottom: 1rem; 
+                      background: linear-gradient(45deg, #64ffda, #00bcd4, #2196f3);
+                      -webkit-background-clip: text;
+                      -webkit-text-fill-color: transparent;
+                      background-clip: text;
+                  }
+                  .subtitle { 
+                      font-size: 1.5rem; 
+                      margin-bottom: 2rem; 
+                      color: #b0bec5;
+                      font-weight: 300;
+                  }
+                  .description { 
+                      font-size: 1.1rem; 
+                      line-height: 1.6; 
+                      margin-bottom: 3rem; 
+                      color: #eceff1;
+                  }
+                  .download-section {
+                      background: rgba(255, 255, 255, 0.05);
+                      border-radius: 15px;
+                      padding: 2rem;
+                      margin: 2rem 0;
+                      backdrop-filter: blur(10px);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                  }
+                  .download-btn {
+                      display: inline-block;
+                      background: linear-gradient(45deg, #2196f3, #00bcd4);
+                      color: white;
+                      padding: 15px 30px;
+                      border-radius: 50px;
+                      text-decoration: none;
+                      font-weight: 600;
+                      font-size: 1.1rem;
+                      margin: 10px;
+                      transition: all 0.3s ease;
+                      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+                  }
+                  .download-btn:hover {
+                      transform: translateY(-2px);
+                      box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
+                  }
+                  .features {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                      gap: 2rem;
+                      margin: 3rem 0;
+                  }
+                  .feature {
+                      background: rgba(255, 255, 255, 0.05);
+                      padding: 1.5rem;
+                      border-radius: 10px;
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                  }
+                  .feature h3 {
+                      color: #64ffda;
+                      margin-bottom: 1rem;
+                      font-size: 1.2rem;
+                  }
+                  .links {
+                      margin-top: 3rem;
+                      display: flex;
+                      flex-wrap: wrap;
+                      justify-content: center;
+                      gap: 1rem;
+                  }
+                  .link {
+                      color: #64ffda;
+                      text-decoration: none;
+                      padding: 10px 20px;
+                      border: 1px solid #64ffda;
+                      border-radius: 25px;
+                      transition: all 0.3s ease;
+                  }
+                  .link:hover {
+                      background: #64ffda;
+                      color: #0f0f23;
+                  }
+                  @media (max-width: 768px) {
+                      h1 { font-size: 2.5rem; }
+                      .subtitle { font-size: 1.2rem; }
+                      .features { grid-template-columns: 1fr; }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🎵 MuseCraft Studio</h1>
+                  <div class="subtitle">AI-Powered MIDI Generation Desktop Studio</div>
+                  
+                  <div class="description">
+                      Create beautiful AI-powered music with advanced machine learning models. 
+                      Professional piano roll editor, real-time generation, and seamless DAW integration.
+                  </div>
+                  
+                  <div class="download-section">
+                      <h2 style="margin-bottom: 1rem; color: #64ffda;">📥 Download for Windows</h2>
+                      <a href="https://github.com/WebChatAppAi/MuseCraft-Studio/releases/latest" class="download-btn">
+                          💻 Download Latest Release
+                      </a>
+                      <p style="margin-top: 1rem; color: #b0bec5; font-size: 0.9rem;">
+                          Windows 10/11 • 64-bit • Portable & Installer versions available
+                      </p>
+                  </div>
+                  
+                  <div class="features">
+                      <div class="feature">
+                          <h3>🤖 Advanced AI Models</h3>
+                          <p>Load and manage multiple AI models with real-time status monitoring and progress updates.</p>
+                      </div>
+                      <div class="feature">
+                          <h3>🎹 Professional Editor</h3>
+                          <p>Canvas-based MIDI editor with velocity control, synchronized timeline, and DAW integration.</p>
+                      </div>
+                      <div class="feature">
+                          <h3>⚡ Real-time Generation</h3>
+                          <p>Live WebSocket communication for instant generation progress and model status updates.</p>
+                      </div>
+                      <div class="feature">
+                          <h3>🎨 Modern Interface</h3>
+                          <p>Beautiful dark theme UI built with React 19 and shadcn/ui components for optimal workflow.</p>
+                      </div>
+                  </div>
+                  
+                  <div class="links">
+                      <a href="https://github.com/WebChatAppAi/MuseCraft-Studio" class="link">📱 GitHub Repository</a>
+                      <a href="https://github.com/WebChatAppAi/MuseCraftEngine" class="link">🚀 Backend Engine</a>
+                      <a href="https://huggingface.co/projectlosangeles/MuseCraft/tree/main" class="link">🤖 AI Models</a>
+                      <a href="https://github.com/WebChatAppAi/MuseCraft-Studio/blob/main/docs/usage-guide.md" class="link">📚 Documentation</a>
+                  </div>
+                  
+                  <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); color: #78909c;">
+                      <p>Built with ❤️ for the AI music community</p>
+                      <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                          Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC") • 
+                          Commit: ${{ github.sha }}
+                      </p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+          echo "✅ Basic GitHub Pages content created"
+
+      - name: 🏗️ Optimize content for GitHub Pages
+        if: steps.pages_check.outputs.exists == 'true'
+        run: |
+          echo "🖼️ Optimizing existing content..."
+          
+          # Install imagemagick for image optimization
+          sudo apt-get update && sudo apt-get install -y imagemagick || true
+          
+          # Ensure site icon is available within docs
+          if [ -f "src/resources/icon.png" ]; then
+            cp -f src/resources/icon.png docs/icon.png
+            echo "✅ Icon copied to docs"
+          fi
+          
+          # Create optimized preview directory if preview images exist
+          if [ -d "preview" ]; then
+            mkdir -p docs/optimized-preview
+            for img in preview/*.png preview/*.jpg preview/*.jpeg; do
+              if [ -f "$img" ]; then
+                filename=$(basename "$img")
+                echo "Optimizing $filename..."
+                convert "$img" -strip -interlace Plane -quality 85 "docs/optimized-preview/$filename" 2>/dev/null || cp "$img" "docs/optimized-preview/$filename"
+              fi
+            done
+            echo "✅ Preview images optimized"
+          fi
+
+      - name: 📄 Create SEO files
+        run: |
+          echo "🤖 Creating robots.txt..."
+          cat > docs/robots.txt << EOF
+          User-agent: *
+          Allow: /
+          
+          Sitemap: https://webchatappai.github.io/MuseCraft-Studio/sitemap.xml
+          EOF
+          
+          echo "🗺️ Creating sitemap.xml..."
+          cat > docs/sitemap.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>https://webchatappai.github.io/MuseCraft-Studio/</loc>
+              <lastmod>$(date -u +%Y-%m-%d)</lastmod>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+          </urlset>
+          EOF
+          
+          echo "✅ SEO files created"
+
+      - name: 📊 Generate deployment info
+        run: |
+          cat > docs/deployment-info.json << EOF
+          {
+            "version": "v1",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit_sha": "${{ github.sha }}",
+            "commit_ref": "${{ github.ref }}",
+            "repository": "${{ github.repository }}",
+            "actor": "${{ github.actor }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "pages_url": "https://webchatappai.github.io/MuseCraft-Studio/"
+          }
+          EOF
+          echo "✅ Deployment info generated"
+
+      - name: 🔧 Setup GitHub Pages (with enablement)
+        uses: actions/configure-pages@v4
+        with:
+          enablement: true
+          
+      - name: 📤 Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+          retention-days: 30
+      
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
+      github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️ Check if tag exists and delete if needed
+        run: |
+          TAG="${{ needs.build.outputs.tag }}"
+          echo "Checking if tag $TAG exists..."
+          
+          # Check if tag exists locally
+          if git tag -l | grep -q "^$TAG$"; then
+            echo "Tag $TAG exists locally, deleting..."
+            git tag -d $TAG
+          fi
+          
+          # Check if tag exists on remote
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG$"; then
+            echo "Tag $TAG exists on remote, deleting..."
+            git push --delete origin $TAG || echo "Failed to delete remote tag (might not exist)"
+          fi
+          
+          echo "Tag cleanup completed"
+
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 🔍 List and organize artifacts
+        run: |
+          echo "📦 Downloaded artifacts:"
+          find artifacts -type f | sort
+          
+          echo "📊 File details:"
+          find artifacts -type f | while read file; do
+            echo "  📄 $file ($(du -h "$file" | cut -f1))"
+          done
+          
+          # Flatten artifact structure for release
+          mkdir -p release-files
+          find artifacts -name "*.exe" -exec cp {} release-files/ \;
+          find artifacts -name "*.zip" -exec cp {} release-files/ \;
+          find artifacts -name "*.json" -exec cp {} release-files/ \;
+          
+          echo "📦 Release files prepared:"
+          ls -la release-files/ || echo "No release files found"
+
+      - name: 📝 Generate release notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          # 🎵 MuseCraft Studio ${{ needs.build.outputs.tag }}
+          
+          **AI-Powered MIDI Generation Desktop Studio**
+          
+          ## ✨ What's New in ${{ needs.build.outputs.tag }}
+          
+          - 🤖 **Advanced AI Model Management**: Load and manage multiple AI models with real-time status monitoring
+          - 🎹 **Professional Piano Roll Editor**: Canvas-based MIDI editor with velocity control and synchronized timeline
+          - ⚡ **Real-time WebSocket Communication**: Live generation progress updates and model status monitoring
+          - 🎵 **Enhanced MIDI Import/Export**: Full compatibility with major DAWs and music software
+          - 🎨 **Modern Dark Theme UI**: Beautiful interface built with React 19 and shadcn/ui components
+          - 🔧 **Advanced AI Controls**: Fine-tune creativity, note density, musical style, and generation parameters
+          
+          ## 📥 Downloads (Windows Only)
+          
+          ### Windows
+          - **MuseCraft-Studio-Windows-Portable**: Portable version that doesn't require installation
+          
+          ## 🚀 Getting Started
+          
+          1. **Download and setup MuseCraftEngine**: [GitHub Repository](https://github.com/WebChatAppAi/MuseCraftEngine)
+          2. **Install PyTorch** for your system (CUDA/MPS/CPU)
+          3. **Download AI models** from [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)
+          4. **Download MuseCraft Studio** from the files below
+          5. **Launch and start creating music!**
+          
+          ## 🔗 Links
+          
+          - 🌐 **[Live Demo](https://webchatappai.github.io/MuseCraft-Studio/)**
+          - 🚀 **[MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)**
+          - 🤖 **[AI Models](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)**
+          - 📚 **[Documentation](https://github.com/WebChatAppAi/MuseCraft-Studio/blob/main/docs/usage-guide.md)**
+          
+          ---
+          
+          **🎹 Start creating beautiful AI-powered music today! ✨**
+          
+          **Build Information:**
+          - **Commit**: `${{ github.sha }}`
+          - **Built**: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)
+          - **Triggered by**: ${{ github.actor }}
+          EOF
+
+      - name: 🏷️ Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: "MuseCraft Studio ${{ needs.build.outputs.tag }} (Windows)"
+          body_path: release_notes.md
+          files: release-files/*
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          generate_release_notes: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  summary:
+    name: Deployment Summary
+    needs: [build, pages, release]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 🎉 Generate Summary
+        run: |
+          echo "## 🎉 MuseCraft Studio Build & Deploy Complete! 🎵" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Build Results" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            echo "- ✅ **Windows Build**: Successfully built v${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Windows Build**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.pages.result }}" == "success" ]; then
+            echo "- ✅ **GitHub Pages**: Successfully deployed" >> $GITHUB_STEP_SUMMARY
+            echo "  - 🌐 **Site URL**: [${{ needs.pages.outputs.page_url }}](${{ needs.pages.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.pages.result }}" == "skipped" ]; then
+            echo "- ⏭️ **GitHub Pages**: Skipped (PR or manual trigger without pages flag)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **GitHub Pages**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.release.result }}" == "success" ]; then
+            echo "- ✅ **GitHub Release**: Successfully created ${{ needs.build.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - 💾 **Download**: [Latest Release](https://github.com/${{ github.repository }}/releases/tag/${{ needs.build.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.release.result }}" == "skipped" ]; then
+            echo "- ⏭️ **GitHub Release**: Skipped (PR build)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **GitHub Release**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 **Repository**: [MuseCraft-Studio](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 **Engine**: [MuseCraftEngine](https://github.com/WebChatAppAi/MuseCraftEngine)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🤖 **AI Models**: [HuggingFace](https://huggingface.co/projectlosangeles/MuseCraft/tree/main)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎵 **Made with ❤️ for the AI music community** 🎹✨" >> $GITHUB_STEP_SUMMARY
+
+  cleanup:
+    name: Cleanup Artifacts
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 🧹 Cleanup build artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            MuseCraft-Studio-Windows-*
+            build-info
+          failOnError: false
+          useGlob: true
+        continue-on-error: true
