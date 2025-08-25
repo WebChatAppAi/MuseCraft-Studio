@@ -79,6 +79,7 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@tailwindcss/oxide", "electron", "esbuild", "midi-writer-js"]
+    "onlyBuiltDependencies": ["@tailwindcss/oxide", "electron", "esbuild", "midi-writer-js"],
+    "onlyBuiltDependenciesFile": "only-built-dependencies.json"
   }
 }
