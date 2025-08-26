@@ -56,6 +56,15 @@ export default {
       filter: ['**/*']
     },
     {
+      from: `${resources}/soundbank`,
+      to: 'soundbank',
+      filter: ['**/*']
+    },
+    {
+      from: `${resources}/midi.png`,
+      to: 'midi.png'
+    },
+    {
       from: `${resources}/icon.ico`,
       to: 'icon.ico'
     },

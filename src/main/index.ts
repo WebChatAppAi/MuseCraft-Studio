@@ -1,7 +1,7 @@
 import { app, ipcMain, BrowserWindow } from 'electron'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
 import { makeAppWithSingleInstanceLock } from '../lib/electron-app/factories/app/instance'
 import { makeAppSetup } from '../lib/electron-app/factories/app/setup'
 import { MainWindow } from './windows/main'
@@ -80,9 +80,14 @@ ipcMain.on('drag-midi-file', (event, dataUri: string) => {
     fs.writeFileSync(tempPath, buffer);
 
     // Start the drag operation
+    const isDev = process.env.NODE_ENV === 'development';
+    const iconPath = isDev
+      ? path.join(process.cwd(), 'src', 'resources', 'midi.png')
+      : path.join(process.resourcesPath, 'midi.png');
+
     event.sender.startDrag({
       file: tempPath,
-      icon: path.join(process.cwd(), 'src/resources/midi.png'),
+      icon: iconPath,
     });
   }
 });
@@ -100,10 +105,9 @@ ipcMain.handle('get-soundfont-path', (event, filename: string) => {
   // Check if file exists
   if (fs.existsSync(soundfontPath)) {
     return soundfontPath;
-  } else {
-    console.error(`❌ Soundfont not found: ${soundfontPath}`);
-    return null;
   }
+  console.error(`❌ Soundfont not found: ${soundfontPath}`);
+  return null;
 });
 
 // Handle reading SF2 file as buffer for web audio

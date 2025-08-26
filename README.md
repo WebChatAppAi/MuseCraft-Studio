@@ -21,19 +21,23 @@
 MuseCraft Studio is a professional desktop application built with **Electron, React 19, and TypeScript** that combines AI music generation with intuitive MIDI editing. It provides a seamless workflow from AI model management to professional MIDI composition.
 
 ### ✨ Key Features
-- **🤖 AI Model Management**: Load and manage AI models with real-time status monitoring
-- **🎹 Professional Piano Roll Editor**: Full-featured MIDI editor with velocity control
-- **⚡ Real-time Communication**: WebSocket integration with MuseCraftEngine backend
-- **🎵 MIDI Import/Export**: Compatible with all major DAWs and music software
-- **🎨 Modern UI**: Beautiful interface built with shadcn/ui + Tailwind CSS
 
-## 🚀 Quick Installation Guide
+## Quick Installation Guide
 
-### ⚠️ **IMPORTANT: Setup MuseCraftEngine First**
+### Direct Windows Download (Portable)
+
+Windows users can download and run the portable executable directly (no installation required):
+
+- Direct .exe: https://github.com/WebChatAppAi/MuseCraft-Studio/releases/download/v1.0.0/musecraft-app-v1.0.0-win.exe
+- Latest releases page: https://github.com/WebChatAppAi/MuseCraft-Studio/releases/latest
+
+Note: The desktop app runs without installation, but AI features still require the MuseCraftEngine backend running locally. See the setup below.
+
+### IMPORTANT: Setup MuseCraftEngine First
 
 Before using MuseCraft Studio's AI features, you **MUST** set up and run the MuseCraftEngine backend:
 
-**🔗 [MuseCraftEngine Repository](https://github.com/WebChatAppAi/MuseCraftEngine)**
+**[MuseCraftEngine Repository](https://github.com/WebChatAppAi/MuseCraftEngine)**
 
 #### Quick Engine Setup:
 ```bash
